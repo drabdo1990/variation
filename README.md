@@ -129,29 +129,3 @@ values.
 
 ---
 
-## Running it
-
-```bash
-npm install
-npm run dev
-```
-
-Then open http://localhost:5173.
-
-```bash
-npm run build     # production build
-npm run lint      # eslint
-```
-
-Charts are code-split into their own chunk, so routes that do not render
-a chart never download Recharts.
-
----
-
-## Wiring up a backend
-
-All state flows through one reducer in
-[`src/store/state.js`](src/store/state.js), and the only persistence is the
-`localStorage` write in [`AppStore.jsx`](src/store/AppStore.jsx). Swap that
-effect for API calls and the rest of the app is unchanged — components read
-through `useAppState()` and hold no fetching logic of their own.
