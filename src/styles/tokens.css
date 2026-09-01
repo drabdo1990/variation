@@ -1,0 +1,74 @@
+/**
+ * Cadence design tokens.
+ * Every colour, radius, and shadow in the app resolves to one of these.
+ * Components must not hard-code hex values.
+ */
+:root {
+  /* Brand — indigo primary on a deep slate shell */
+  --c-shell: #151b2e;
+  --c-shell-hover: rgba(255, 255, 255, 0.07);
+  --c-shell-text: #c3cade;
+
+  --c-primary: #4f5bd5;
+  --c-primary-strong: #3f49b8;
+  --c-primary-soft: #eceefc;
+
+  --c-accent: #f2b134;
+  --c-accent-soft: #fdf3de;
+
+  /* Semantic.
+     Each has a *fill* value for bars, dots and chart marks, and a darker
+     *-text* value for type. The fill values are too light to carry text
+     at 4.5:1 on their own soft backgrounds, so never use them for words. */
+  --c-success: #1f9d76;
+  --c-success-soft: #e3f4ee;
+  --c-success-text: #0f6a4e;
+
+  --c-warning: #d0891a;
+  --c-warning-soft: #fbf0dc;
+  --c-warning-text: #7d5106;
+
+  --c-danger: #d4504a;
+  --c-danger-soft: #fbe8e7;
+  --c-danger-text: #97302b;
+
+  --c-neutral: #7b849e;
+  --c-neutral-soft: #eef0f5;
+
+  /* Surfaces & text — every tier below clears WCAG AA (4.5:1) on both
+     --c-surface and --c-canvas. */
+  --c-canvas: #f6f7fb;
+  --c-surface: #ffffff;
+  --c-border: #e4e7f0;
+  --c-ink: #1c2340;
+  --c-ink-muted: #545c78;
+  --c-ink-faint: #676f8c;
+
+  /* Type scale */
+  --fs-display: 2rem;
+  --fs-title: 1.375rem;
+  --fs-body: 0.9375rem;
+  --fs-small: 0.8125rem;
+
+  /* Spacing rhythm */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+
+  /* Shape & depth */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-pill: 999px;
+
+  --sh-card: 0 1px 2px rgba(28, 35, 64, 0.05), 0 4px 16px rgba(28, 35, 64, 0.05);
+  --sh-raised: 0 8px 24px rgba(28, 35, 64, 0.12);
+
+  /* Layout */
+  --nav-w: 236px;
+  --nav-w-rail: 68px;
+  --topbar-h: 62px;
+}

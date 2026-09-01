@@ -1,0 +1,39 @@
+.panel {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-card);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-5);
+  border-bottom: 1px solid var(--c-border);
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.panel-title i {
+  color: var(--c-primary);
+  font-size: 1.05rem;
+}
+
+.panel-body {
+  padding: var(--sp-5);
+  flex: 1;
+  min-width: 0;
+}

@@ -1,0 +1,34 @@
+.empty {
+  text-align: center;
+  padding: var(--sp-6) var(--sp-4);
+  color: var(--c-ink-muted);
+}
+
+.empty i {
+  font-size: 1.75rem;
+  color: var(--c-ink-faint);
+  display: block;
+  margin-bottom: var(--sp-3);
+}
+
+.empty-title {
+  margin: 0;
+  font-weight: 600;
+  color: var(--c-ink);
+}
+
+.empty-hint {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-small);
+  max-width: 42ch;
+  margin-inline: auto;
+  line-height: 1.5;
+}
+
+.empty-action {
+  margin-top: var(--sp-4);
+  display: flex;
+  justify-content: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}

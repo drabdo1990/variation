@@ -1,0 +1,153 @@
+.field {
+  margin-bottom: var(--sp-4);
+}
+
+.field > label {
+  display: block;
+  font-size: var(--fs-small);
+  font-weight: 650;
+  color: var(--c-ink);
+  margin-bottom: var(--sp-2);
+}
+
+.field-req {
+  color: var(--c-danger-text);
+  margin-left: 2px;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+  padding: 9px 12px;
+  min-height: 44px;
+  /* 16px avoids iOS auto-zooming the page on focus. */
+  font-size: 16px;
+  color: var(--c-ink);
+  font-family: inherit;
+}
+
+.field textarea {
+  min-height: 76px;
+  resize: vertical;
+}
+
+.field select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23545c78'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 32px;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 3px var(--c-primary-soft);
+}
+
+.field.has-error input,
+.field.has-error select,
+.field.has-error textarea {
+  border-color: var(--c-danger-text);
+}
+
+.field-hint,
+.field-error {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-small);
+}
+
+.field-hint {
+  color: var(--c-ink-muted);
+}
+
+.field-error {
+  color: var(--c-danger-text);
+  font-weight: 550;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+/* Two fields side by side on wider dialogs. */
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-4);
+}
+
+@media (max-width: 575.98px) {
+  .field-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}
+
+/* Multi-select list of people. */
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.picker-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  border-radius: var(--r-pill);
+  padding: 6px 12px 6px 6px;
+  min-height: 40px;
+  font-size: var(--fs-small);
+  font-weight: 550;
+  color: var(--c-ink-muted);
+}
+
+.picker-chip:hover {
+  border-color: var(--c-ink-faint);
+  color: var(--c-ink);
+}
+
+.picker-chip.is-on {
+  background: var(--c-primary-soft);
+  border-color: var(--c-primary);
+  color: var(--c-primary-strong);
+}
+
+@media (pointer: coarse) {
+  .picker-chip {
+    min-height: 44px;
+  }
+}
+
+.picker-empty {
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--c-ink-muted);
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  background: transparent;
+  color: var(--c-danger-text);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  padding: 9px 14px;
+  min-height: 44px;
+  font-size: var(--fs-body);
+  font-weight: 550;
+}
+
+.btn-danger:hover {
+  background: var(--c-danger-soft);
+  border-color: var(--c-danger-text);
+}

@@ -1,0 +1,52 @@
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 2px 9px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.pill-primary {
+  background: var(--c-primary-soft);
+  color: var(--c-primary-strong);
+}
+.pill-success {
+  background: var(--c-success-soft);
+  color: var(--c-success-text);
+}
+.pill-warning {
+  background: var(--c-warning-soft);
+  color: var(--c-warning-text);
+}
+.pill-danger {
+  background: var(--c-danger-soft);
+  color: var(--c-danger-text);
+}
+.pill-neutral {
+  background: var(--c-neutral-soft);
+  color: var(--c-ink-muted);
+}
+
+/* The dot carries the vivid fill colour even though the text next to it
+   is darkened for contrast. */
+.pill-success .pill-dot {
+  background: var(--c-success);
+}
+.pill-warning .pill-dot {
+  background: var(--c-warning);
+}
+.pill-danger .pill-dot {
+  background: var(--c-danger);
+}

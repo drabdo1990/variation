@@ -1,0 +1,190 @@
+.task {
+  position: relative;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  box-shadow: var(--sh-card);
+  padding: var(--sp-4);
+  cursor: grab;
+  transition:
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.task:hover {
+  box-shadow: var(--sh-raised);
+}
+
+.task.is-dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+.task-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+  /* Reserve the corner the move controls occupy so the urgency pill is
+     never sitting underneath them — on hover, or permanently on touch. */
+  padding-right: 84px;
+  min-height: 34px;
+}
+
+.task-title {
+  margin: 0;
+  font-size: var(--fs-body);
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.task-detail {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-small);
+  color: var(--c-ink-muted);
+  line-height: 1.45;
+}
+
+.task-project {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--c-primary-strong);
+  background: var(--c-primary-soft);
+  border-radius: var(--r-sm);
+  padding: 2px 7px;
+  margin-bottom: var(--sp-3);
+}
+
+.task-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  border-top: 1px solid var(--c-border);
+  padding-top: var(--sp-3);
+}
+
+.task-foot-right {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.task-unassigned {
+  font-size: var(--fs-small);
+  color: var(--c-ink-faint);
+  font-style: italic;
+}
+
+.task-edit {
+  border: 0;
+  background: transparent;
+  color: var(--c-ink-faint);
+  font-size: 0.8rem;
+  width: 32px;
+  height: 32px;
+  margin: -6px -6px -6px 0;
+  border-radius: var(--r-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.task-edit:hover {
+  background: var(--c-primary-soft);
+  color: var(--c-primary-strong);
+}
+
+@media (pointer: coarse) {
+  .task-edit {
+    width: 44px;
+    height: 44px;
+    margin: -12px -12px -12px 0;
+  }
+}
+
+.task-due {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--fs-small);
+  color: var(--c-ink-muted);
+  white-space: nowrap;
+}
+
+.task-due.is-overdue {
+  color: var(--c-danger-text);
+  font-weight: 650;
+}
+
+.task-move {
+  position: absolute;
+  top: var(--sp-1);
+  right: var(--sp-1);
+  display: flex;
+  gap: var(--sp-1);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.task:hover .task-move,
+.task:focus-within .task-move {
+  opacity: 1;
+}
+
+/* The visible chip is 26px, but the button itself fills 44x44 so the
+   tap target meets the platform minimum without a bulky control. */
+.task-move button {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--c-ink-muted);
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.task-move button::before {
+  content: "";
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  background: var(--c-surface);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.task-move button i {
+  position: relative;
+}
+
+.task-move button:hover:not(:disabled)::before {
+  background: var(--c-primary);
+  border-color: var(--c-primary);
+}
+
+.task-move button:hover:not(:disabled) {
+  color: #fff;
+}
+
+.task-move button:disabled {
+  opacity: 0.3;
+}
+
+/* Touch devices have no hover, so keep the controls permanently visible. */
+@media (hover: none) {
+  .task-move {
+    opacity: 1;
+  }
+}

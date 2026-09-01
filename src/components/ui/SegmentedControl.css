@@ -1,0 +1,54 @@
+.seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  background: var(--c-neutral-soft);
+  border-radius: var(--r-md);
+  padding: 4px;
+}
+
+.seg-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  border: 0;
+  background: transparent;
+  border-radius: var(--r-sm);
+  padding: 6px 12px;
+  min-height: 36px;
+  font-size: var(--fs-body);
+  font-weight: 550;
+  color: var(--c-ink-muted);
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+/* Touch input needs the full 44px; pointer input does not, so the
+   control stays compact on desktop. */
+@media (pointer: coarse) {
+  .seg-item {
+    min-height: 44px;
+  }
+}
+
+.seg-item:hover {
+  color: var(--c-ink);
+}
+
+.seg-item.is-active {
+  background: var(--c-surface);
+  color: var(--c-ink);
+  font-weight: 650;
+  box-shadow: var(--sh-card);
+}
+
+.seg-count {
+  font-size: var(--fs-small);
+  font-weight: 650;
+  color: var(--c-ink-muted);
+}
+
+.seg-item.is-active .seg-count {
+  color: var(--c-primary);
+}

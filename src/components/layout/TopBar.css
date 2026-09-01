@@ -1,0 +1,167 @@
+.topbar {
+  height: var(--topbar-h);
+  background: var(--c-surface);
+  border-bottom: 1px solid var(--c-border);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 0 var(--sp-5);
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+}
+
+.topbar-menu {
+  display: none;
+  border: 0;
+  background: transparent;
+  color: var(--c-ink);
+  font-size: 1.35rem;
+  line-height: 1;
+  /* 44px minimum touch target. flex-shrink:0 stops the topbar's flex
+     layout squeezing it narrower than that. */
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  padding: 0;
+  margin-left: calc(var(--sp-3) * -1);
+  border-radius: var(--r-md);
+}
+
+.topbar-search {
+  position: relative;
+  flex: 1;
+  max-width: 380px;
+}
+
+.topbar-search i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--c-ink-faint);
+  font-size: 0.9rem;
+}
+
+.topbar-search input {
+  width: 100%;
+  border: 1px solid var(--c-border);
+  background: var(--c-canvas);
+  border-radius: var(--r-md);
+  padding: 8px 12px 8px 34px;
+  min-height: 44px;
+  font-size: var(--fs-body);
+  color: var(--c-ink);
+}
+
+.topbar-search input::placeholder {
+  color: var(--c-ink-faint);
+}
+
+.topbar-search input:focus {
+  outline: none;
+  border-color: var(--c-primary);
+  background: var(--c-surface);
+}
+
+.topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+}
+
+.topbar-icon {
+  position: relative;
+  border: 0;
+  background: transparent;
+  color: var(--c-ink-muted);
+  font-size: 1.15rem;
+  line-height: 1;
+  /* 44px minimum touch target around a 18px glyph. */
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-md);
+}
+
+.topbar-icon:hover {
+  color: var(--c-ink);
+}
+
+.topbar-badge {
+  position: absolute;
+  top: 6px;
+  right: 5px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--r-pill);
+  background: var(--c-danger-text);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.topbar-user {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  border: 0;
+  background: transparent;
+  padding: var(--sp-1) var(--sp-2);
+  margin-right: calc(var(--sp-2) * -1);
+  border-radius: var(--r-md);
+  text-align: left;
+  min-height: 44px;
+}
+
+.topbar-user:hover {
+  background: var(--c-neutral-soft);
+}
+
+.topbar-user-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.topbar-user-text strong {
+  font-size: var(--fs-body);
+  font-weight: 650;
+}
+
+.topbar-user-text small {
+  font-size: var(--fs-small);
+  color: var(--c-ink-muted);
+}
+
+@media (max-width: 991.98px) {
+  .topbar-menu {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* iOS auto-zooms any focused input under 16px, which fights the
+     viewport. Bump the search field on small screens only. */
+  .topbar-search input {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .topbar {
+    padding: 0 var(--sp-4);
+  }
+  .topbar-user-text {
+    display: none;
+  }
+}

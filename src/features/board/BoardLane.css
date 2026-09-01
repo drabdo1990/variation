@@ -1,0 +1,103 @@
+.lane {
+  background: var(--c-neutral-soft);
+  border: 1px solid transparent;
+  border-radius: var(--r-lg);
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.lane.is-over {
+  background: var(--c-primary-soft);
+  border-color: var(--c-primary);
+}
+
+.lane-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+
+.lane-title {
+  margin: 0;
+  font-size: var(--fs-body);
+  font-weight: 650;
+}
+
+.lane-count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--r-pill);
+  background: var(--c-surface);
+  color: var(--c-ink-muted);
+  font-size: var(--fs-small);
+  font-weight: 650;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lane-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  flex: 1;
+  min-height: 90px;
+}
+
+.lane-add {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: var(--c-ink-muted);
+  width: 32px;
+  height: 32px;
+  margin-block: -6px;
+  border-radius: var(--r-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+.lane-add:hover {
+  background: var(--c-surface);
+  color: var(--c-primary);
+}
+
+@media (pointer: coarse) {
+  .lane-add {
+    width: 44px;
+    height: 44px;
+    margin-block: -12px;
+  }
+}
+
+.lane-empty {
+  margin: 0;
+  padding: var(--sp-5) var(--sp-3);
+  width: 100%;
+  min-height: 44px;
+  text-align: center;
+  font-size: var(--fs-small);
+  color: var(--c-ink-muted);
+  background: transparent;
+  border: 1px dashed var(--c-border);
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+}
+
+.lane-empty:hover {
+  border-color: var(--c-primary);
+  color: var(--c-primary-strong);
+  background: var(--c-surface);
+}

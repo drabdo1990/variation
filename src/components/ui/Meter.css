@@ -1,0 +1,31 @@
+.meter {
+  background: var(--c-neutral-soft);
+  border-radius: var(--r-pill);
+  height: 6px;
+  overflow: hidden;
+  width: 100%;
+  min-width: 60px;
+}
+
+.meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-pill);
+  transition: width 0.35s ease;
+}
+
+.meter-primary {
+  background: var(--c-primary);
+}
+.meter-success {
+  background: var(--c-success);
+}
+.meter-warning {
+  background: var(--c-warning);
+}
+.meter-danger {
+  background: var(--c-danger);
+}
+.meter-neutral {
+  background: var(--c-neutral);
+}

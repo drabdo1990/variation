@@ -1,0 +1,36 @@
+.av {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-pill);
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.av-stack {
+  display: inline-flex;
+  align-items: center;
+}
+
+.av-stack .av {
+  border: 2px solid var(--c-surface);
+}
+
+.av-stack .av + .av {
+  margin-left: -10px;
+}
+
+.av-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-pill);
+  background: var(--c-neutral-soft);
+  color: var(--c-ink-muted);
+  font-weight: 650;
+  border: 2px solid var(--c-surface);
+  margin-left: -10px;
+  flex-shrink: 0;
+}
