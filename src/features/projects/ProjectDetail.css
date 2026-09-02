@@ -1,0 +1,366 @@
+.crumb {
+  color: var(--c-primary);
+  font-weight: 600;
+}
+
+.aim-text {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--c-ink);
+  max-width: 70ch;
+}
+
+.aim-missing {
+  margin: 0;
+  color: var(--c-ink-muted);
+  line-height: 1.6;
+  max-width: 70ch;
+}
+
+.aim-team {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-4);
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--c-border);
+}
+
+.aim-lead {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-small);
+  color: var(--c-ink-muted);
+}
+
+/* ---------------------------------------------------------- measures */
+
+.mgroup + .mgroup {
+  margin-top: var(--sp-5);
+}
+
+.mgroup-title {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-small);
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--c-ink-faint);
+}
+
+.mlist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.mrow-link {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+  color: inherit;
+  min-height: 44px;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.mrow-link:hover {
+  border-color: var(--c-primary);
+  background: var(--c-primary-soft);
+}
+
+.mrow-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.mrow-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.mrow-name {
+  font-weight: 600;
+  color: var(--c-ink);
+}
+
+.mrow-meta {
+  font-size: var(--fs-small);
+  color: var(--c-ink-muted);
+  margin-top: 2px;
+}
+
+.mrow-overdue {
+  color: var(--c-warning-text);
+  font-weight: 600;
+}
+
+.mrow-chevron {
+  color: var(--c-ink-faint);
+  flex-shrink: 0;
+}
+
+.spark {
+  flex-shrink: 0;
+}
+
+.spark-empty {
+  width: 96px;
+  flex-shrink: 0;
+}
+
+.mgroup-nudge {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin: var(--sp-4) 0 0;
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--c-canvas);
+  font-size: var(--fs-small);
+  color: var(--c-ink-muted);
+  line-height: 1.5;
+}
+
+@media (max-width: 575.98px) {
+  .mrow-link {
+    flex-wrap: wrap;
+  }
+  .spark,
+  .spark-empty {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------ cycles */
+
+.cycles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.cycle {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+}
+
+.cycle-num {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--c-primary-soft);
+  color: var(--c-primary-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: var(--fs-small);
+}
+
+.cycle-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.cycle-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.cycle-head strong {
+  color: var(--c-ink);
+}
+
+.cycle-dates {
+  margin: 2px 0 0;
+  font-size: var(--fs-small);
+  color: var(--c-ink-muted);
+}
+
+.cycle-prediction,
+.cycle-study {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-small);
+  color: var(--c-ink-muted);
+  line-height: 1.5;
+}
+
+.cycle-prediction span,
+.cycle-study span {
+  font-weight: 650;
+  color: var(--c-ink-faint);
+}
+
+.cycle-edit {
+  border: 0;
+  background: transparent;
+  color: var(--c-ink-faint);
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  margin: -7px -7px 0 0;
+  border-radius: var(--r-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cycle-edit:hover {
+  background: var(--c-primary-soft);
+  color: var(--c-primary-strong);
+}
+
+/* ------------------------------------------------------------- tasks */
+
+.task-add {
+  display: flex;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.task-add input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+  padding: 9px 12px;
+  min-height: 44px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--c-ink);
+}
+
+.task-add input:focus {
+  outline: none;
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 3px var(--c-primary-soft);
+}
+
+.tasks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.task {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  border-bottom: 1px solid var(--c-border);
+}
+
+.task:last-child {
+  border-bottom: 0;
+}
+
+.task label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.task input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--c-primary);
+}
+
+.task.is-done span {
+  text-decoration: line-through;
+  color: var(--c-ink-faint);
+}
+
+.task-remove {
+  border: 0;
+  background: transparent;
+  color: var(--c-ink-faint);
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: var(--r-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+}
+
+.task-remove:hover {
+  background: var(--c-danger-soft);
+  color: var(--c-danger-text);
+}
+
+.task-empty {
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--c-ink-muted);
+  line-height: 1.6;
+}
+
+.detail-foot {
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--c-ink-faint);
+}
+
+/* Checkbox row used in the PDSA form. */
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  font-size: var(--fs-small);
+  color: var(--c-ink-muted);
+  line-height: 1.5;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.check-row input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  accent-color: var(--c-primary);
+}
+
+.about-chart {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-small);
+  color: var(--c-ink-muted);
+  line-height: 1.6;
+  max-width: 70ch;
+}
+
+.about-chart:last-child {
+  margin-bottom: 0;
+}

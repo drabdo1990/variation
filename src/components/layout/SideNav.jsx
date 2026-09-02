@@ -19,7 +19,7 @@ function SideNav({ open, onNavigate }) {
           <span className="sidenav-mark" aria-hidden="true">
             <i className="bi bi-bar-chart-fill" />
           </span>
-          <span className="sidenav-word">Cadence</span>
+          <span className="sidenav-word">Variation</span>
         </div>
 
         <nav aria-label="Main">
@@ -42,7 +42,7 @@ function SideNav({ open, onNavigate }) {
           </ul>
         </nav>
 
-        <p className="sidenav-foot">Cadence · v0.1.0</p>
+        <p className="sidenav-foot">Variation · v0.1.0</p>
       </aside>
     </>
   );

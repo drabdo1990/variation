@@ -24,7 +24,7 @@
   flex-wrap: wrap;
 }
 
-.btn-cadence {
+.btn-primary {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-2);
@@ -40,7 +40,7 @@
   transition: background 0.15s ease;
 }
 
-.btn-cadence:hover {
+.btn-primary:hover {
   background: var(--c-primary-strong);
   color: #fff;
 }

@@ -1,41 +1,44 @@
 import Panel from "../../components/ui/Panel.jsx";
 import EmptyState from "../../components/ui/EmptyState.jsx";
 import { relativeTime } from "../../lib/format.js";
-import { BOARD_LANES } from "../../data/vocab.js";
+import { MEASURE_ROLES } from "../../data/vocab.js";
 import "./ActivityFeed.css";
-
-const laneLabel = (id) =>
-  BOARD_LANES.find((lane) => lane.id === id)?.label ?? id;
 
 /** Turn a logged event into a readable line. */
 function describe(event) {
   switch (event.kind) {
     case "person.add":
-      return { icon: "bi-person-plus", verb: "Added", tail: event.detail };
+      return { icon: "bi-person-plus", verb: "Added", tail: null };
     case "person.update":
       return { icon: "bi-pencil", verb: "Updated", tail: null };
     case "person.remove":
       return { icon: "bi-person-dash", verb: "Removed", tail: null };
     case "project.add":
-      return { icon: "bi-folder-plus", verb: "Created project", tail: event.detail };
+      return { icon: "bi-clipboard2-plus", verb: "Started project", tail: null };
     case "project.update":
       return { icon: "bi-pencil", verb: "Updated project", tail: null };
     case "project.remove":
-      return { icon: "bi-folder-minus", verb: "Deleted project", tail: null };
-    case "task.add":
-      return { icon: "bi-plus-square", verb: "Added task", tail: null };
-    case "task.update":
-      return { icon: "bi-pencil", verb: "Edited task", tail: null };
-    case "task.move":
+      return { icon: "bi-clipboard2-x", verb: "Deleted project", tail: null };
+    case "project.import":
+      return { icon: "bi-box-arrow-in-down", verb: "Imported project", tail: null };
+    case "measure.add":
       return {
-        icon: "bi-arrow-left-right",
-        verb: "Moved",
-        tail: `to ${laneLabel(event.detail)}`,
+        icon: "bi-rulers",
+        verb: "Added measure",
+        tail: MEASURE_ROLES[event.detail]?.label.toLowerCase(),
       };
-    case "task.ship":
-      return { icon: "bi-check2-circle", verb: "Shipped", tail: null };
-    case "task.remove":
-      return { icon: "bi-x-square", verb: "Deleted task", tail: null };
+    case "measure.update":
+      return { icon: "bi-pencil", verb: "Updated measure", tail: null };
+    case "measure.remove":
+      return { icon: "bi-dash-square", verb: "Deleted measure", tail: null };
+    case "observation.import":
+      return { icon: "bi-clipboard-data", verb: "Imported", tail: null };
+    case "cycle.add":
+      return { icon: "bi-arrow-repeat", verb: "Started", tail: event.detail };
+    case "cycle.update":
+      return { icon: "bi-pencil", verb: "Updated", tail: null };
+    case "cycle.remove":
+      return { icon: "bi-x-square", verb: "Deleted cycle", tail: null };
     default:
       return { icon: "bi-dot", verb: "Changed", tail: null };
   }

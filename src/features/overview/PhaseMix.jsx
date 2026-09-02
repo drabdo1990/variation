@@ -5,12 +5,19 @@ import { phaseCounts } from "../../lib/metrics.js";
 import { PROJECT_PHASES } from "../../data/vocab.js";
 import "./PhaseMix.css";
 
-const TONE_COLOR = {
-  neutral: "#7b849e",
-  primary: "#4f5bd5",
-  warning: "#d0891a",
-  success: "#1f9d76",
-  danger: "#d4504a",
+/**
+ * One colour per phase rather than per tone — several phases share a tone
+ * (both "baseline" and "implementing" read as primary), and two slices of
+ * the same colour in one pie would be unreadable.
+ */
+const PHASE_COLOR = {
+  planning: "#9aa2ba",
+  baseline: "#6f7ae0",
+  testing: "#d0891a",
+  implementing: "#3f49b8",
+  sustaining: "#1f9d76",
+  closed: "#0f6a4e",
+  paused: "#d4504a",
 };
 
 function PhaseMix({ projects }) {
@@ -20,7 +27,7 @@ function PhaseMix({ projects }) {
       key,
       name: meta.label,
       value: counts.get(key) ?? 0,
-      color: TONE_COLOR[meta.tone],
+      color: PHASE_COLOR[key],
     }))
     .filter((slice) => slice.value > 0);
 

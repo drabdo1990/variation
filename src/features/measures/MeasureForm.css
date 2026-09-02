@@ -1,0 +1,94 @@
+.guide {
+  border: 0;
+  padding: 0;
+  margin: 0 0 var(--sp-4);
+  min-width: 0;
+}
+
+.guide legend {
+  padding: 0;
+  font-size: var(--fs-small);
+  font-weight: 650;
+  color: var(--c-ink);
+  margin-bottom: var(--sp-2);
+}
+
+.guide-options {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.guide-option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.guide-option:hover {
+  border-color: var(--c-ink-faint);
+}
+
+.guide-option.is-on {
+  border-color: var(--c-primary);
+  background: var(--c-primary-soft);
+}
+
+.guide-option input {
+  margin: 2px 0 0;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--c-primary);
+}
+
+.guide-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.guide-body strong {
+  font-size: var(--fs-body);
+  color: var(--c-ink);
+}
+
+.guide-example {
+  font-size: var(--fs-small);
+  color: var(--c-ink-muted);
+  font-style: italic;
+}
+
+.guide-detail {
+  font-size: var(--fs-small);
+  color: var(--c-ink-muted);
+  line-height: 1.5;
+}
+
+.guide-note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin: calc(var(--sp-2) * -1) 0 var(--sp-4);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--c-primary-soft);
+  color: var(--c-primary-strong);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+
+/* Touch input gets the full 44px target on each option. */
+@media (pointer: coarse) {
+  .guide-option {
+    min-height: 44px;
+  }
+}

@@ -7,12 +7,12 @@ import ProjectForm from "./ProjectForm.jsx";
 import { PROJECT_PHASES } from "../../data/vocab.js";
 import { useAppState } from "../../store/context.js";
 
-function PortfolioPage() {
-  const { projects, people, tasks } = useAppState();
+function ProjectsPage() {
+  const { projects, people, measures, observations } = useAppState();
   const [phase, setPhase] = useState("all");
-  const [editing, setEditing] = useState(null); // null | "new" | project
+  const [adding, setAdding] = useState(false);
 
-  // Counts come from the data, so a phase with no projects is hidden.
+  // Only phases that actually contain something are offered as filters.
   const filters = useMemo(() => {
     const base = [{ id: "all", label: "All", count: projects.length }];
     const byPhase = Object.entries(PROJECT_PHASES)
@@ -31,18 +31,14 @@ function PortfolioPage() {
   return (
     <>
       <PageHeader
-        title="Portfolio"
+        title="Projects"
         lede={
           projects.length === 0
-            ? "Create a project to start tracking delivery."
-            : "Every project, its phase, and whether it is holding its date."
+            ? "Start a quality improvement project and give it an aim."
+            : "Every QI project, its phase, and whether its measures are moving."
         }
       >
-        <button
-          type="button"
-          className="btn-cadence"
-          onClick={() => setEditing("new")}
-        >
+        <button type="button" className="btn-primary" onClick={() => setAdding(true)}>
           <i className="bi bi-plus-lg" aria-hidden="true" /> New project
         </button>
       </PageHeader>
@@ -50,15 +46,11 @@ function PortfolioPage() {
       <div className="stack">
         {projects.length === 0 ? (
           <EmptyState
-            icon="bi-collection"
+            icon="bi-clipboard2-pulse"
             title="No projects yet"
-            hint="A project holds a start and target date. Add tasks to it and Cadence works out progress and whether it is on pace."
+            hint="A QI project holds an aim, a family of measures, and the PDSA cycles you run to move them. Start with the aim — what will improve, for whom, by how much, and by when."
             action={
-              <button
-                type="button"
-                className="btn-cadence"
-                onClick={() => setEditing("new")}
-              >
+              <button type="button" className="btn-primary" onClick={() => setAdding(true)}>
                 <i className="bi bi-plus-lg" aria-hidden="true" /> New project
               </button>
             }
@@ -75,10 +67,7 @@ function PortfolioPage() {
             )}
 
             {visible.length === 0 ? (
-              <EmptyState
-                title="No projects in this phase"
-                hint="Try a different filter."
-              />
+              <EmptyState title="Nothing in this phase" hint="Try a different filter." />
             ) : (
               <div className="grid-cards">
                 {visible.map((project) => (
@@ -86,8 +75,8 @@ function PortfolioPage() {
                     key={project.id}
                     project={project}
                     people={people}
-                    tasks={tasks}
-                    onEdit={() => setEditing(project)}
+                    measures={measures}
+                    observations={observations}
                   />
                 ))}
               </div>
@@ -96,14 +85,9 @@ function PortfolioPage() {
         )}
       </div>
 
-      {editing && (
-        <ProjectForm
-          project={editing === "new" ? null : editing}
-          onClose={() => setEditing(null)}
-        />
-      )}
+      {adding && <ProjectForm onClose={() => setAdding(false)} />}
     </>
   );
 }
 
-export default PortfolioPage;
+export default ProjectsPage;

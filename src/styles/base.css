@@ -35,16 +35,25 @@ a {
 }
 
 /* Screen-reader-only text. */
+/**
+ * Visually hidden but read by screen readers.
+ *
+ * `clip-path` rather than absolute positioning: an absolutely positioned
+ * element inside a wide, horizontally scrolled region anchors to the
+ * document and drags its scrollWidth out with it, which shows up as phantom
+ * horizontal page scroll on a narrow screen.
+ */
 .sr-only {
-  position: absolute;
+  position: static;
   width: 1px;
   height: 1px;
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
+  display: inline-block;
 }
 
 @media (prefers-reduced-motion: reduce) {

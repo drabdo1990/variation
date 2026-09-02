@@ -1,0 +1,60 @@
+.siglist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.sigrow {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  color: inherit;
+  min-height: 44px;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.sigrow:hover {
+  border-color: var(--c-primary);
+  background: var(--c-primary-soft);
+}
+
+.sigrow-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sigrow-name {
+  font-weight: 600;
+  color: var(--c-ink);
+}
+
+.sigrow-project {
+  font-size: var(--fs-small);
+  color: var(--c-ink-muted);
+}
+
+.sigrow-why {
+  font-size: var(--fs-small);
+  color: var(--c-ink-faint);
+}
+
+@media (max-width: 575.98px) {
+  .sigrow {
+    flex-wrap: wrap;
+  }
+  .sigrow .spark,
+  .sigrow .spark-empty {
+    display: none;
+  }
+}

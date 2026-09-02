@@ -1,29 +1,10 @@
 import { useState } from "react";
 import Modal from "../../components/ui/Modal.jsx";
 import Field from "../../components/ui/Field.jsx";
-import { GUILDS, PRESENCE } from "../../data/vocab.js";
+import { DEPARTMENTS } from "../../data/vocab.js";
 import { useDispatch } from "../../store/context.js";
 
-const blank = {
-  name: "",
-  title: "",
-  guild: "web",
-  presence: "onsite",
-  timezone: "",
-  weeklyCapacity: 32,
-};
-
-function validate(values) {
-  const errors = {};
-  if (!values.name.trim()) errors.name = "A name is required.";
-  if (!values.title.trim()) errors.title = "Add a role so the team page reads clearly.";
-
-  const capacity = Number(values.weeklyCapacity);
-  if (Number.isNaN(capacity) || capacity < 0 || capacity > 80) {
-    errors.weeklyCapacity = "Enter hours between 0 and 80.";
-  }
-  return errors;
-}
+const blank = { name: "", role: "", department: "anaesthetics" };
 
 function PersonForm({ person, onClose }) {
   const dispatch = useDispatch();
@@ -37,18 +18,16 @@ function PersonForm({ person, onClose }) {
 
   const submit = (event) => {
     event.preventDefault();
-    const found = validate(values);
+    const found = {};
+    if (!values.name.trim()) found.name = "A name is required.";
     setErrors(found);
     if (Object.keys(found).length) return;
 
     const payload = {
       ...values,
       name: values.name.trim(),
-      title: values.title.trim(),
-      timezone: values.timezone.trim(),
-      weeklyCapacity: Number(values.weeklyCapacity),
+      role: values.role.trim(),
     };
-
     dispatch(
       editing
         ? { type: "person/update", person: payload }
@@ -60,9 +39,9 @@ function PersonForm({ person, onClose }) {
   if (confirmDelete) {
     return (
       <Modal title="Remove this person?" onClose={() => setConfirmDelete(false)} size="sm">
-        <p>
+        <p style={{ marginTop: 0 }}>
           <strong>{person.name}</strong> will be removed from every project and
-          unassigned from their tasks. The tasks themselves are kept.
+          unassigned from their tasks. Nothing else is deleted.
         </p>
         <div className="modal-foot" style={{ border: 0, padding: 0, marginTop: "1rem" }}>
           <button type="button" className="btn-quiet" onClick={() => setConfirmDelete(false)}>
@@ -97,7 +76,7 @@ function PersonForm({ person, onClose }) {
           <button type="button" className="btn-quiet" onClick={onClose}>
             Cancel
           </button>
-          <button type="submit" form="person-form" className="btn-cadence">
+          <button type="submit" form="person-form" className="btn-primary">
             {editing ? "Save changes" : "Add person"}
           </button>
         </>
@@ -110,67 +89,28 @@ function PersonForm({ person, onClose }) {
           )}
         </Field>
 
-        <Field label="Role" required error={errors.title}>
+        <Field label="Role">
           {(props) => (
             <input
               {...props}
-              value={values.title}
-              onChange={set("title")}
-              placeholder="Frontend Engineer"
+              value={values.role}
+              onChange={set("role")}
+              placeholder="Consultant Anaesthetist"
             />
           )}
         </Field>
 
-        <div className="field-row">
-          <Field label="Guild">
-            {(props) => (
-              <select {...props} value={values.guild} onChange={set("guild")}>
-                {Object.entries(GUILDS).map(([key, label]) => (
-                  <option key={key} value={key}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            )}
-          </Field>
-
-          <Field label="Availability">
-            {(props) => (
-              <select {...props} value={values.presence} onChange={set("presence")}>
-                {Object.entries(PRESENCE).map(([key, meta]) => (
-                  <option key={key} value={key}>
-                    {meta.label}
-                  </option>
-                ))}
-              </select>
-            )}
-          </Field>
-        </div>
-
-        <div className="field-row">
-          <Field label="Time zone" hint="Free text, e.g. GMT+2">
-            {(props) => (
-              <input {...props} value={values.timezone} onChange={set("timezone")} placeholder="GMT+2" />
-            )}
-          </Field>
-
-          <Field
-            label="Weekly capacity"
-            error={errors.weeklyCapacity}
-            hint="Hours available per week"
-          >
-            {(props) => (
-              <input
-                {...props}
-                type="number"
-                min="0"
-                max="80"
-                value={values.weeklyCapacity}
-                onChange={set("weeklyCapacity")}
-              />
-            )}
-          </Field>
-        </div>
+        <Field label="Department">
+          {(props) => (
+            <select {...props} value={values.department} onChange={set("department")}>
+              {Object.entries(DEPARTMENTS).map(([key, label]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
       </form>
     </Modal>
   );

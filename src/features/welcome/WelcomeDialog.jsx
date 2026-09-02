@@ -5,7 +5,7 @@ import { useDispatch } from "../../store/context.js";
 
 /**
  * Shown once on first run, and again whenever the user chooses to edit
- * their name from the topbar. Cadence has no accounts — this is only used
+ * their name from the topbar. Variation has no accounts — this is only used
  * for the greeting.
  */
 function WelcomeDialog({ current = "", onClose }) {
@@ -26,7 +26,7 @@ function WelcomeDialog({ current = "", onClose }) {
 
   return (
     <Modal
-      title={firstRun ? "Welcome to Cadence" : "Your name"}
+      title={firstRun ? "Welcome to Variation" : "Your name"}
       // First run has nothing behind it worth returning to, so the dialog
       // offers no way out until a name is given.
       onClose={onClose}
@@ -39,7 +39,7 @@ function WelcomeDialog({ current = "", onClose }) {
               Cancel
             </button>
           )}
-          <button type="submit" form="welcome-form" className="btn-cadence">
+          <button type="submit" form="welcome-form" className="btn-primary">
             {firstRun ? "Get started" : "Save"}
           </button>
         </>
@@ -47,7 +47,7 @@ function WelcomeDialog({ current = "", onClose }) {
     >
       {firstRun && (
         <p style={{ marginTop: 0, color: "var(--c-ink-muted)" }}>
-          Cadence starts empty. You add your own people, projects, and tasks —
+          Variation starts empty. You add your own people, projects, and tasks —
           everything is stored in this browser, nothing is sent anywhere.
         </p>
       )}

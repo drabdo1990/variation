@@ -1,15 +1,15 @@
 import Avatar from "../../components/ui/Avatar.jsx";
 import Pill from "../../components/ui/Pill.jsx";
-import Meter from "../../components/ui/Meter.jsx";
-import { GUILDS, PRESENCE } from "../../data/vocab.js";
-import { loadFor, loadBand, openTasksFor } from "../../lib/metrics.js";
+import { DEPARTMENTS } from "../../data/vocab.js";
 import "./PersonCard.css";
 
-function PersonCard({ person, tasks, onEdit }) {
-  const presence = PRESENCE[person.presence];
-  const load = loadFor(person, tasks);
-  const band = loadBand(load);
-  const open = openTasksFor(tasks, person.id).length;
+function PersonCard({ person, projects, onEdit }) {
+  // Which projects this person is on — the only workload signal that
+  // matters now that delivery throughput is gone.
+  const involved = projects.filter(
+    (p) => p.leadId === person.id || p.memberIds.includes(person.id),
+  );
+  const leading = involved.filter((p) => p.leadId === person.id).length;
 
   return (
     <article className="person">
@@ -17,48 +17,35 @@ function PersonCard({ person, tasks, onEdit }) {
         <Avatar name={person.name} size={46} />
         <div className="person-id">
           <h3>{person.name}</h3>
-          <p>{person.title}</p>
+          {person.role && <p>{person.role}</p>}
         </div>
-        <Pill tone={presence.tone} dot>
-          {presence.label}
-        </Pill>
+        <button
+          type="button"
+          className="person-edit"
+          onClick={onEdit}
+          aria-label={`Edit ${person.name}`}
+        >
+          <i className="bi bi-pencil" aria-hidden="true" />
+        </button>
       </div>
 
       <div className="person-tags">
         <span className="person-tag">
-          <i className="bi bi-diagram-3" aria-hidden="true" />{" "}
-          {GUILDS[person.guild]}
+          <i className="bi bi-hospital" aria-hidden="true" />{" "}
+          {DEPARTMENTS[person.department] ?? "—"}
         </span>
-        {person.timezone && (
-          <span className="person-tag">
-            <i className="bi bi-globe" aria-hidden="true" /> {person.timezone}
-          </span>
+        {leading > 0 && (
+          <Pill tone="primary">
+            Leads {leading} {leading === 1 ? "project" : "projects"}
+          </Pill>
         )}
       </div>
 
-      <div className="person-load">
-        <div className="person-load-top">
-          <span className="person-load-label">Workload</span>
-          <Pill tone={band.tone}>{band.label}</Pill>
-        </div>
-        <Meter value={load} tone={band.tone} label={`${person.name} workload`} />
-        <div className="person-load-foot">
-          <span>
-            {open} open {open === 1 ? "task" : "tasks"}
-            {person.weeklyCapacity
-              ? ` · ${person.weeklyCapacity}h capacity`
-              : " · no capacity set"}
-          </span>
-          <button
-            type="button"
-            className="person-edit"
-            onClick={onEdit}
-            aria-label={`Edit ${person.name}`}
-          >
-            <i className="bi bi-pencil" aria-hidden="true" /> Edit
-          </button>
-        </div>
-      </div>
+      <p className="person-projects">
+        {involved.length === 0
+          ? "Not on any project yet"
+          : involved.map((p) => p.name).join(" · ")}
+      </p>
     </article>
   );
 }

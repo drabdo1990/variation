@@ -10,7 +10,7 @@ function NotFoundPage() {
         hint="The link may be out of date."
       />
       <p style={{ textAlign: "center" }}>
-        <Link to="/" className="btn-cadence">
+        <Link to="/" className="btn-primary">
           <i className="bi bi-arrow-left" aria-hidden="true" /> Back to overview
         </Link>
       </p>
