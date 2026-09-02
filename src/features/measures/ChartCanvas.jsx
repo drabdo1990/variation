@@ -114,7 +114,9 @@ function ChartCanvas({ chart, measure, annotations = [], height = 340 }) {
   return (
     <div className="chart-canvas">
       <ResponsiveContainer width="100%" height={height}>
-        <ComposedChart data={data} margin={{ top: 12, right: 16, bottom: 4, left: 0 }}>
+        {/* The right margin has to clear the centre-line, limit and goal
+            labels, which are anchored to the right edge of the plot. */}
+        <ComposedChart data={data} margin={{ top: 16, right: 56, bottom: 4, left: 0 }}>
           <CartesianGrid stroke="#eef0f5" vertical={false} />
           <XAxis
             dataKey="label"
