@@ -7,7 +7,7 @@ overloaded, and which projects are drifting against their dates.
 every number on every screen is calculated from what you enter. Nothing is
 seeded, and nothing leaves your browser.
 
-Built from scratch with React 19, Bootstrap 5, Recharts, and Vite.
+Built from scratch with React 19, React Router, Bootstrap 5, Recharts, and Vite.
 
 **License:** MIT — see [LICENSE](LICENSE). All code, data, and assets in
 this repository are original or MIT/permissively licensed.
@@ -65,6 +65,12 @@ server. A **Load sample data** button in the empty state fills in a demo
 team if you want to see the app populated; the reset control in the topbar
 clears it again.
 
+### Routes live in the URL hash
+
+The app uses `HashRouter`, so links look like `/#/portfolio`. This is what
+lets a refresh or a deep link work on a static host — GitHub Pages
+included — with no server-side rewrite rules.
+
 ### Avatars are generated
 
 Initials on a hue derived from the name — deterministic, no image
@@ -119,8 +125,9 @@ src/
 │   ├── portfolio/ ProjectCard · ProjectForm
 │   ├── people/    PersonCard · PersonForm
 │   ├── board/     useBoard · BoardLane · TaskCard · TaskForm
-│   └── insights/  HeadlineRow · ThroughputChart · CycleTimeChart · DeliveryTable
-└── router/        AppRouter.jsx
+│   └── insights/  HeadlineRow · ThroughputChart · CycleTimeChart ·
+│                  DeliveryTable · chartTheme.js
+└── router/        AppRouter.jsx (HashRouter)
 ```
 
 Every colour, radius, and shadow resolves to a token in
@@ -129,3 +136,42 @@ values.
 
 ---
 
+## Running it
+
+Requires Node 18 or newer (CI builds on Node 20).
+
+```bash
+npm install
+npm run dev
+```
+
+Then open http://localhost:5173.
+
+```bash
+npm run build     # production build to dist/
+npm run preview   # serve the built dist/ locally
+npm run lint      # eslint — the only automated check; there is no test suite
+```
+
+Charts are code-split into their own chunk, so routes that do not render
+a chart never download Recharts.
+
+---
+
+## Deployment
+
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) builds the
+site and publishes `dist/` to GitHub Pages on every push to `main` (and on
+a manual run). Because [`vite.config.js`](vite.config.js) sets
+`base: "./"`, the same build works whether it is served from a domain root
+or a Pages project subpath — no per-environment configuration.
+
+---
+
+## Wiring up a backend
+
+All state flows through one reducer in
+[`src/store/state.js`](src/store/state.js), and the only persistence is the
+`localStorage` write in [`AppStore.jsx`](src/store/AppStore.jsx). Swap that
+effect for API calls and the rest of the app is unchanged — components read
+through `useAppState()` and hold no fetching logic of their own.
