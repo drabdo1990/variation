@@ -1,0 +1,111 @@
+.family-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+
+.family-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  border-radius: var(--r-pill);
+  padding: 6px 14px;
+  min-height: 40px;
+  font-size: var(--fs-small);
+  font-weight: 550;
+  color: var(--c-ink-faint);
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.family-toggle:hover {
+  border-color: var(--c-ink-faint);
+  color: var(--c-ink);
+}
+
+.family-toggle.is-on {
+  color: var(--c-ink);
+  border-color: var(--c-ink-faint);
+  background: var(--c-canvas);
+}
+
+/* A left bar keys the toggle to its role, but the chart header spells the
+   role out in words too — the colour never carries it alone. */
+.family-toggle.is-on.role-outcome {
+  border-left: 4px solid var(--c-primary);
+}
+.family-toggle.is-on.role-process {
+  border-left: 4px solid var(--c-warning);
+}
+.family-toggle.is-on.role-balancing {
+  border-left: 4px solid var(--c-neutral);
+}
+
+@media (pointer: coarse) {
+  .family-toggle {
+    min-height: 44px;
+  }
+}
+
+.family-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+.family-item + .family-item {
+  border-top: 1px solid var(--c-border);
+  padding-top: var(--sp-5);
+}
+
+.family-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-2);
+}
+
+.family-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.family-name {
+  font-weight: 650;
+  color: var(--c-ink);
+}
+
+.family-name:hover {
+  color: var(--c-primary-strong);
+}
+
+/* Touch input needs the full target; on a pointer the link stays inline
+   with the role pill beside it. */
+@media (pointer: coarse) {
+  .family-name {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}
+
+.family-nodata {
+  margin: 0;
+  padding: var(--sp-5);
+  border: 1px dashed var(--c-border);
+  border-radius: var(--r-md);
+  text-align: center;
+  font-size: var(--fs-small);
+  color: var(--c-ink-muted);
+  line-height: 1.55;
+}

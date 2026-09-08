@@ -3,6 +3,7 @@ import AppShell from "../components/layout/AppShell.jsx";
 import OverviewPage from "../features/overview/OverviewPage.jsx";
 import ProjectsPage from "../features/projects/ProjectsPage.jsx";
 import ProjectDetailPage from "../features/projects/ProjectDetailPage.jsx";
+import DataEntryPage from "../features/data/DataEntryPage.jsx";
 import MeasureDetailPage from "../features/measures/MeasureDetailPage.jsx";
 import PeoplePage from "../features/people/PeoplePage.jsx";
 import NotFoundPage from "../features/NotFoundPage.jsx";
@@ -20,6 +21,7 @@ function AppRouter() {
           <Route index element={<OverviewPage />} />
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="projects/:projectId" element={<ProjectDetailPage />} />
+          <Route path="projects/:projectId/data" element={<DataEntryPage />} />
           <Route
             path="projects/:projectId/measures/:measureId"
             element={<MeasureDetailPage />}

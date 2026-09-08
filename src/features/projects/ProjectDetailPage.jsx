@@ -143,9 +143,9 @@ function ProjectDetailPage() {
         <button type="button" className="btn-quiet" onClick={() => setEditing(true)}>
           <i className="bi bi-pencil" aria-hidden="true" /> Edit
         </button>
-        <button type="button" className="btn-primary" onClick={() => setAddingMeasure(true)}>
-          <i className="bi bi-plus-lg" aria-hidden="true" /> Add measure
-        </button>
+        <Link to={`/projects/${project.id}/data`} className="btn-primary">
+          <i className="bi bi-grid-3x3" aria-hidden="true" /> Enter data
+        </Link>
       </PageHeader>
 
       <div className="stack">
@@ -181,9 +181,16 @@ function ProjectDetailPage() {
           title="Measures"
           icon="bi-rulers"
           action={
-            <button type="button" className="panel-link" onClick={() => setAddingMeasure(true)}>
-              Add measure <i className="bi bi-plus-lg" aria-hidden="true" />
-            </button>
+            <div className="panel-actions">
+              {measures.length > 0 && (
+                <Link to={`/projects/${project.id}/data`} className="panel-link">
+                  Enter data <i className="bi bi-grid-3x3" aria-hidden="true" />
+                </Link>
+              )}
+              <button type="button" className="panel-link" onClick={() => setAddingMeasure(true)}>
+                Add measure <i className="bi bi-plus-lg" aria-hidden="true" />
+              </button>
+            </div>
           }
         >
           {measures.length === 0 ? (

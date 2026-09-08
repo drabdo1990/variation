@@ -80,6 +80,12 @@ export function plottedValue(observation, measure) {
   const multiplier = measure.multiplier ?? 1;
   const type = measure.chartType;
 
+  // A cell cleared in the data matrix leaves a row with no numerator. Left
+  // unguarded that divides to a plotted zero, which would draw a real data
+  // point where there is none — worse than a gap, because it moves the
+  // centre line.
+  if (value === null || value === undefined || Number.isNaN(value)) return null;
+
   if (type === "np" || type === "c") return value;
 
   if (type === "p" || type === "u") {

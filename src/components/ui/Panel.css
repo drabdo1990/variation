@@ -60,3 +60,15 @@
   color: var(--c-primary-strong);
   background: var(--c-primary-soft);
 }
+
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.panel-note {
+  font-size: var(--fs-small);
+  color: var(--c-ink-faint);
+}

@@ -26,7 +26,10 @@ const COLOR = {
  * a ring — colour alone must not be what tells you a point is special.
  */
 function PointDot({ cx, cy, payload }) {
-  if (cx === undefined || cy === undefined) return null;
+  // A padded gap in a shared axis has no coordinates and no value.
+  if (cx === undefined || cy === undefined || payload.plotted === null) {
+    return null;
+  }
   const flagged = payload.violations?.length > 0;
 
   if (!flagged) {
@@ -80,13 +83,32 @@ function ChartTooltip({ active, payload, measure }) {
  * change with each period's denominator — drawing them as a smooth line
  * would imply a precision the data does not have.
  */
-function ChartCanvas({ chart, measure, annotations = [], height = 340 }) {
+function ChartCanvas({
+  chart,
+  measure,
+  annotations = [],
+  height = 340,
+  /**
+   * Every period in the project, so several measures stacked above one
+   * another share an x-axis and line up. A measure with no reading in a
+   * period gets a null, which leaves an honest gap instead of joining
+   * across missing data.
+   */
+  sharedPeriods = null,
+  onPointClick,
+}) {
   if (!chart.hasData) return null;
 
-  const data = chart.points.map((p) => ({
-    ...p,
-    label: shortDate(p.period),
-  }));
+  const byPeriod = new Map(chart.points.map((p) => [p.period, p]));
+
+  const data = (sharedPeriods ?? chart.points.map((p) => p.period)).map(
+    (period) => {
+      const point = byPeriod.get(period);
+      return point
+        ? { ...point, label: shortDate(point.period) }
+        : { period, label: shortDate(period), plotted: null, violations: [] };
+    },
+  );
 
   /**
    * The x-axis is categorical — one slot per collection period — so a
@@ -116,7 +138,17 @@ function ChartCanvas({ chart, measure, annotations = [], height = 340 }) {
       <ResponsiveContainer width="100%" height={height}>
         {/* The right margin has to clear the centre-line, limit and goal
             labels, which are anchored to the right edge of the plot. */}
-        <ComposedChart data={data} margin={{ top: 16, right: 56, bottom: 4, left: 0 }}>
+        <ComposedChart
+          data={data}
+          margin={{ top: 16, right: 56, bottom: 4, left: 0 }}
+          onClick={
+            onPointClick
+              ? (e) => e?.activePayload?.[0] &&
+                  onPointClick(e.activePayload[0].payload.period)
+              : undefined
+          }
+          style={onPointClick ? { cursor: "pointer" } : undefined}
+        >
           <CartesianGrid stroke="#eef0f5" vertical={false} />
           <XAxis
             dataKey="label"
@@ -254,6 +286,9 @@ function ChartCanvas({ chart, measure, annotations = [], height = 340 }) {
             dot={<PointDot />}
             activeDot={{ r: 6 }}
             isAnimationActive={false}
+            /* A period with no reading stays a gap. Joining across it would
+               invent data that was never collected. */
+            connectNulls={false}
           />
         </ComposedChart>
       </ResponsiveContainer>

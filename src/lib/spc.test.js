@@ -522,6 +522,32 @@ describe("interpretChart", () => {
  * Empty and degenerate input
  * ==================================================================== */
 
+describe("missing values", () => {
+  it("skips an observation whose value was cleared, rather than plotting zero", () => {
+    // A cleared numerator with the denominator still present must not
+    // divide to 0 and drag the centre line down.
+    const rows = [
+      { id: "o1", measureId: "m1", period: "2026-01-01", value: 40, denominator: 50 },
+      { id: "o2", measureId: "m1", period: "2026-01-02", value: null, denominator: 50 },
+      { id: "o3", measureId: "m1", period: "2026-01-03", value: 44, denominator: 50 },
+    ];
+    const chart = computeChart(
+      measure({ chartType: "run", multiplier: 100 }),
+      rows,
+    );
+    expect(chart.points).toHaveLength(2);
+    expect(chart.points.map((p) => p.plotted)).toEqual([80, 88]);
+  });
+
+  it("skips an undefined value on a plain run chart", () => {
+    const chart = computeChart(measure({ chartType: "run" }), [
+      { id: "o1", measureId: "m1", period: "2026-01-01", value: 5, denominator: null },
+      { id: "o2", measureId: "m1", period: "2026-01-02", value: undefined, denominator: null },
+    ]);
+    expect(chart.points).toHaveLength(1);
+  });
+});
+
 describe("empty input", () => {
   it("returns a no-data chart rather than throwing", () => {
     const chart = computeChart(measure({ chartType: "xmr" }), []);

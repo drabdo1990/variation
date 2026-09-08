@@ -3,6 +3,14 @@
   font-weight: 600;
 }
 
+@media (pointer: coarse) {
+  .crumb {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}
+
 .aim-text {
   margin: 0;
   font-size: 1.05rem;

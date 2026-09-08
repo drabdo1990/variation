@@ -1,0 +1,237 @@
+.matrix-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-4);
+}
+
+.matrix-hint {
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--c-ink-muted);
+  line-height: 1.55;
+  max-width: 62ch;
+}
+
+/* The grid scrolls inside itself — sideways so the page never does, and
+   vertically so a long history cannot push the charts off the screen.
+   Entering data next to the chart it feeds is the whole point of the page. */
+.matrix-scroll {
+  overflow: auto;
+  max-height: min(60vh, 560px);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+}
+
+.matrix {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-size: var(--fs-small);
+}
+
+.matrix th,
+.matrix td {
+  border-bottom: 1px solid var(--c-border);
+  border-right: 1px solid var(--c-border);
+  padding: 0;
+}
+
+.matrix thead th {
+  background: var(--c-canvas);
+  vertical-align: bottom;
+  padding: var(--sp-2) var(--sp-3);
+  text-align: left;
+  font-weight: 650;
+  color: var(--c-ink);
+  /* Stays put while the rows scroll under it, so you can always see which
+     measure a column belongs to. */
+  position: sticky;
+  z-index: 3;
+}
+
+.matrix thead tr:first-child th {
+  top: 0;
+}
+
+/* The second header row sits directly below the first. The offset is
+   measured at runtime, because how far down it belongs depends on how the
+   measure names wrap. The fallback only applies before that first measure. */
+.matrix thead tr:nth-child(2) th {
+  top: var(--matrix-head-offset, 46px);
+}
+
+.matrix tbody tr:last-child th,
+.matrix tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.matrix th:last-child,
+.matrix td:last-child {
+  border-right: 0;
+}
+
+/* The period column stays put while the measures scroll under it. */
+.matrix-period-head,
+.matrix-period {
+  position: sticky;
+  left: 0;
+  background: var(--c-canvas);
+  min-width: 158px;
+}
+
+.matrix tbody .matrix-period {
+  z-index: 2;
+}
+
+/* The top-left cell is frozen in both directions, so it has to sit above
+   both the sticky header row and the sticky first column. */
+.matrix-period-head {
+  z-index: 4;
+}
+
+.matrix tbody .matrix-period {
+  background: var(--c-surface);
+}
+
+.matrix-measure-head {
+  min-width: 150px;
+  border-bottom: 3px solid var(--c-border);
+}
+
+/* The measure family is colour-coded, but each header also spells the role
+   out underneath — the colour is a shortcut, never the only signal. */
+.matrix-measure-head.role-outcome {
+  border-bottom-color: var(--c-primary);
+}
+.matrix-measure-head.role-process {
+  border-bottom-color: var(--c-warning);
+}
+.matrix-measure-head.role-balancing {
+  border-bottom-color: var(--c-neutral);
+}
+
+.matrix-measure-name {
+  display: block;
+  line-height: 1.3;
+}
+
+.matrix-measure-sub {
+  display: block;
+  font-weight: 500;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--c-ink-faint);
+  margin-top: 2px;
+}
+
+.matrix-sub {
+  font-weight: 500 !important;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--c-ink-faint) !important;
+  min-width: 92px;
+}
+
+.matrix-done-head {
+  width: 92px;
+}
+
+.matrix input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 10px var(--sp-3);
+  min-height: 44px;
+  /* 16px keeps iOS from zooming the page when a cell takes focus. */
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--c-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.matrix input:focus {
+  outline: none;
+  background: var(--c-primary-soft);
+  box-shadow: inset 0 0 0 2px var(--c-primary);
+}
+
+.matrix tbody tr:hover td,
+.matrix tbody tr:hover .matrix-period {
+  background: var(--c-canvas);
+}
+
+/* Row the user jumped to from a chart. */
+.matrix tbody tr.is-focused td,
+.matrix tbody tr.is-focused .matrix-period {
+  background: var(--c-primary-soft);
+}
+
+.matrix-done {
+  text-align: center;
+  white-space: nowrap;
+  padding: 0 var(--sp-2) !important;
+}
+
+.matrix-pip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--r-pill);
+  background: var(--c-neutral-soft);
+  color: var(--c-ink-muted);
+  font-size: 11px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.matrix-pip.is-complete {
+  background: var(--c-success-soft);
+  color: var(--c-success-text);
+}
+
+.matrix-remove {
+  border: 0;
+  background: transparent;
+  color: var(--c-ink-faint);
+  width: 40px;
+  height: 44px;
+  border-radius: var(--r-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (pointer: coarse) {
+  .matrix-remove {
+    width: 44px;
+  }
+}
+
+.matrix-remove:hover {
+  background: var(--c-danger-soft);
+  color: var(--c-danger-text);
+}
+
+.matrix-empty {
+  padding: var(--sp-5);
+  text-align: center;
+  color: var(--c-ink-muted);
+}
+
+.matrix-privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin: var(--sp-3) 0 0;
+  font-size: var(--fs-small);
+  color: var(--c-ink-muted);
+  line-height: 1.5;
+}
