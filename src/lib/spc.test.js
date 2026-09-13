@@ -562,3 +562,131 @@ describe("empty input", () => {
     expect(chart.centre).toBeCloseTo(5, 10);
   });
 });
+
+/* ------------------------------------------------------------------ *
+ * A real dataset
+ *
+ * Thirteen months of a paediatric QI project, from the audit sheet the
+ * user supplied: how many children arrived in the anaesthetic room in
+ * tears, out of how many on the list. The intervention was January 2026.
+ * ------------------------------------------------------------------ */
+
+const TEARS = [
+  ["2025-07-01", 17, 21], ["2025-08-01", 13, 18], ["2025-09-01", 7, 12],
+  ["2025-10-01", 7, 15],  ["2025-11-01", 6, 14],  ["2025-12-01", 9, 18],
+  ["2026-01-01", 0, 12],  ["2026-02-01", 0, 13],  ["2026-03-01", 0, 8],
+  ["2026-04-01", 1, 19],  ["2026-05-01", 0, 8],   ["2026-06-01", 0, 16],
+  ["2026-07-01", 0, 17],
+].map(([period, value, denominator], i) => ({
+  id: `t${i}`, measureId: "m1", period, value, denominator, note: "",
+}));
+
+const tearsMeasure = (over = {}) =>
+  measure({
+    chartType: "p",
+    multiplier: 100,
+    direction: "lower",
+    goal: 10,
+    cadence: "monthly",
+    ...over,
+  });
+
+describe("p-chart on the arriving-in-tears series", () => {
+  /*
+   * Baseline is the six months to Dec 2025: 59 of 98 children.
+   *   p-bar = 59/98 = 0.602041 -> 60.2041%
+   * At n = 12 (January):
+   *   sigma = sqrt(0.6020408 * 0.3979592 / 12) = 0.1412998 -> 14.12998%
+   *   LCL   = 60.20408 - 3(14.12998) = 17.81414%
+   *   UCL   = 60.20408 + 3(14.12998) = 102.594% -> clamped to 100%
+   */
+  it("freezes the limits on the pre-intervention baseline", () => {
+    const chart = computeChart(tearsMeasure({ baselineEnd: "2025-12-01" }), TEARS);
+
+    expect(chart.baseline.frozen).toBe(true);
+    expect(chart.baseline.count).toBe(6);
+    expect(chart.centre).toBeCloseTo(60.2041, 3);
+
+    const january = chart.points[6];
+    expect(january.lcl).toBeCloseTo(17.81414, 4);
+    // A proportion cannot exceed 100%, so the upper limit is held there.
+    expect(january.ucl).toBeCloseTo(100, 10);
+  });
+
+  it("puts every post-intervention month outside the limits", () => {
+    const chart = computeChart(tearsMeasure({ baselineEnd: "2025-12-01" }), TEARS);
+    const beyond = chart.signals.find((s) => s.rule === "beyond-limits");
+
+    expect(beyond.indices).toEqual([6, 7, 8, 9, 10, 11, 12]);
+    expect(chart.points[6].period).toBe("2026-01-01");
+    expect(interpretChart(chart, tearsMeasure()).status).toBe("improving");
+  });
+
+  /*
+   * The reason freezing matters. Across all thirteen months the centre is
+   * 60/191 = 0.314136 -> 31.4136%, and the lower limit falls below zero at
+   * every sample size — so the improvement swallows its own evidence and
+   * not one point can be flagged as beyond the limits.
+   */
+  it("loses the evidence when the limits are not frozen", () => {
+    const chart = computeChart(tearsMeasure({ baselineEnd: null }), TEARS);
+
+    expect(chart.centre).toBeCloseTo(31.4136, 3);
+    const beyond = chart.signals.find((s) => s.rule === "beyond-limits");
+    expect(beyond.indices).not.toContain(12);
+  });
+
+  it("plots percentages, not fractions", () => {
+    const asFraction = computeChart(tearsMeasure({ multiplier: 1 }), TEARS);
+    const asPercent = computeChart(tearsMeasure(), TEARS);
+
+    // 17 of 21 is 80.95% — and 0.8095 on the scale that hides the goal line.
+    expect(asFraction.points[0].plotted).toBeCloseTo(0.809524, 6);
+    expect(asPercent.points[0].plotted).toBeCloseTo(80.9524, 4);
+  });
+});
+
+describe("rows that are still being filled in", () => {
+  /*
+   * The data matrix creates a row with a numerator and no denominator the
+   * moment someone types the first number. Refusing to draw anything at all
+   * until the row is finished makes a working chart vanish mid-entry.
+   */
+  it("plots the complete points and names the incomplete ones", () => {
+    const halfTyped = [
+      ...TEARS.slice(0, 12),
+      { id: "tx", measureId: "m1", period: "2026-07-01", value: 0, denominator: null, note: "" },
+    ];
+    const chart = computeChart(tearsMeasure({ baselineEnd: "2025-12-01" }), halfTyped);
+
+    expect(chart.hasData).toBe(true);
+    expect(chart.points).toHaveLength(12);
+    expect(chart.warnings).toContain("partial-rows");
+    expect(chart.incomplete).toEqual({ count: 1, periods: ["2026-07-01"] });
+    // The limits are untouched: they come from the baseline, which is intact.
+    expect(chart.centre).toBeCloseTo(60.2041, 3);
+  });
+
+  it("still says missing-denominator when nothing is complete", () => {
+    const chart = computeChart(tearsMeasure(), [
+      { id: "a", measureId: "m1", period: "2026-01-01", value: 3, denominator: null, note: "" },
+    ]);
+
+    expect(chart.hasData).toBe(false);
+    expect(chart.warnings).toContain("missing-denominator");
+  });
+
+  it("drops an np point with no denominator instead of returning NaN", () => {
+    // np plots the raw count, so it survives plottedValue without a
+    // denominator and would otherwise reach the limit maths as NaN.
+    const chart = computeChart(measure({ chartType: "np" }), [
+      { id: "a", measureId: "m1", period: "2026-01-01", value: 4, denominator: 50, note: "" },
+      { id: "b", measureId: "m1", period: "2026-01-02", value: 6, denominator: 50, note: "" },
+      { id: "c", measureId: "m1", period: "2026-01-03", value: 5, denominator: null, note: "" },
+    ]);
+
+    expect(chart.points).toHaveLength(2);
+    expect(Number.isFinite(chart.centre)).toBe(true);
+    expect(chart.warnings).toContain("partial-rows");
+  });
+});

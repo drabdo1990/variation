@@ -126,3 +126,27 @@
   color: var(--c-danger-text);
   line-height: 1.6;
 }
+
+.paste-swap {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-canvas);
+  font-size: var(--fs-small);
+  color: var(--c-ink-muted);
+  line-height: 1.5;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.paste-swap input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  accent-color: var(--c-primary);
+}

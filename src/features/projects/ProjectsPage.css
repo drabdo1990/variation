@@ -1,0 +1,20 @@
+/* Import failures are reported in the page rather than an alert(), so the
+   filename stays on screen while the user goes to find the right file. */
+.import-error {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin: 0;
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--c-danger-soft);
+  color: var(--c-danger-text);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+
+.import-error span {
+  flex: 1;
+  min-width: 15rem;
+}

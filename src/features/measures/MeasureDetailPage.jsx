@@ -10,9 +10,14 @@ import MeasureForm from "./MeasureForm.jsx";
 import SignalBadge from "./SignalBadge.jsx";
 import { MEASURE_ROLES, CHART_GUIDE } from "../../data/vocab.js";
 import { CHART_TYPES } from "../../lib/spc.js";
-import { measureStatus, observationsOf, cyclesOf } from "../../lib/metrics.js";
-import { shortDate } from "../../lib/format.js";
-import { useAppState } from "../../store/context.js";
+import {
+  measureStatus,
+  observationsOf,
+  cyclesOf,
+  annotationsFor,
+} from "../../lib/metrics.js";
+import { periodLabel } from "../../lib/format.js";
+import { useAppState, useDispatch } from "../../store/context.js";
 
 const WARNINGS = {
   "few-points":
@@ -22,7 +27,7 @@ const WARNINGS = {
   "lcl-clamped-at-zero":
     "The calculated lower limit fell below zero and has been held at zero, because this measure cannot be negative.",
   "missing-denominator":
-    "This chart needs a denominator on every data point. Add one, or switch the measure to a chart that does not need one.",
+    "This chart needs a denominator on every data point, and none of these have one yet. Add them, or switch the measure to a chart that does not need one.",
   "np-needs-constant-denominator":
     "An np-chart needs exactly the same sample size every period. Your denominators vary — use a p-chart instead.",
 };
@@ -39,6 +44,7 @@ const RULE_LABELS = {
 function MeasureDetailPage() {
   const { projectId, measureId } = useParams();
   const { projects, measures, observations, cycles } = useAppState();
+  const dispatch = useDispatch();
   const [editing, setEditing] = useState(false);
 
   const project = projects.find((p) => p.id === projectId);
@@ -65,9 +71,16 @@ function MeasureDetailPage() {
   const chartLabel = CHART_TYPES[measure.chartType]?.label ?? measure.chartType;
 
   // PDSA cycles flagged for annotation become vertical markers on the chart.
-  const annotations = cyclesOf(cycles, project.id)
-    .filter((c) => c.annotate && c.startDate)
-    .map((c) => ({ id: c.id, date: c.startDate, label: `PDSA ${c.number}` }));
+  const annotations = annotationsFor(cyclesOf(cycles, project.id));
+
+  /*
+   * A proportion left on the "per unit" scale plots as 0.81 rather than 81%,
+   * and takes the goal line off the chart with it. Older measures keep what
+   * they were saved with — silently rewriting stored data would be worse —
+   * so the fix is offered instead of applied.
+   */
+  const plottingAsFraction =
+    measure.chartType === "p" && Number(measure.multiplier) === 1;
 
   return (
     <>
@@ -105,6 +118,33 @@ function MeasureDetailPage() {
             />
           ) : (
             <>
+              {plottingAsFraction && (
+                <p className="chart-nudge">
+                  <i className="bi bi-exclamation-circle-fill" aria-hidden="true" />
+                  <span>
+                    This is plotting as a fraction &mdash; 0.81 where you
+                    probably mean 81%. A goal set in percent will not appear on
+                    the chart until this is changed.
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-quiet"
+                    onClick={() =>
+                      dispatch({
+                        type: "measure/update",
+                        measure: {
+                          ...measure,
+                          multiplier: 100,
+                          unit: measure.unit?.trim() ? measure.unit : "%",
+                        },
+                      })
+                    }
+                  >
+                    Show as a percentage
+                  </button>
+                </p>
+              )}
+
               <ChartCanvas
                 chart={chart}
                 measure={measure}
@@ -130,7 +170,7 @@ function MeasureDetailPage() {
                   <dt>Baseline</dt>
                   <dd>
                     {chart.baseline.frozen
-                      ? `${chart.baseline.count} points to ${shortDate(chart.baseline.end)}, held fixed`
+                      ? `${chart.baseline.count} points to ${periodLabel(chart.baseline.end, measure.cadence)}, held fixed`
                       : `all ${chart.points.length} points`}
                   </dd>
                 </div>
@@ -143,7 +183,11 @@ function MeasureDetailPage() {
               {chart.warnings.map((w) => (
                 <p className="chart-warning" key={w}>
                   <i className="bi bi-info-circle-fill" aria-hidden="true" />
-                  {WARNINGS[w] ?? w}
+                  {w === "partial-rows"
+                    ? `${chart.incomplete.count} period${chart.incomplete.count === 1 ? " is" : "s are"} not plotted because the denominator is still missing: ${chart.incomplete.periods
+                        .map((period) => periodLabel(period, measure.cadence))
+                        .join(", ")}.`
+                    : (WARNINGS[w] ?? w)}
                 </p>
               ))}
             </>
@@ -169,9 +213,15 @@ function MeasureDetailPage() {
                       {signal.indices.length > 0 && (
                         <span>
                           {" "}
-                          — {shortDate(chart.points[signal.indices[0]].period)} to{" "}
-                          {shortDate(
+                          —{" "}
+                          {periodLabel(
+                            chart.points[signal.indices[0]].period,
+                            measure.cadence,
+                          )}{" "}
+                          to{" "}
+                          {periodLabel(
                             chart.points[signal.indices.at(-1)].period,
+                            measure.cadence,
                           )}
                         </span>
                       )}

@@ -2,69 +2,31 @@ import { useState } from "react";
 import Modal from "../../components/ui/Modal.jsx";
 import Field from "../../components/ui/Field.jsx";
 import EmptyState from "../../components/ui/EmptyState.jsx";
-import { CADENCES, CHART_GUIDE } from "../../data/vocab.js";
+import { CHART_GUIDE } from "../../data/vocab.js";
+import { nextPeriod as stepPeriod } from "../../lib/matrix.js";
+import { parsePaste } from "../../lib/paste.js";
 import { useDispatch } from "../../store/context.js";
 import "./ObservationTable.css";
 
-const DAY = 86_400_000;
-const iso = (d) => d.toISOString().slice(0, 10);
-
 function nextPeriod(observations, cadence) {
-  const days = CADENCES[cadence]?.days ?? 30;
-  const latest = observations.map((o) => o.period).sort().at(-1);
-  if (!latest) return iso(new Date());
-  return iso(new Date(new Date(latest).getTime() + days * DAY));
-}
-
-/**
- * Parse pasted spreadsheet data. Accepts tab, comma or semicolon separated
- * columns in the order the table shows them, with an optional header row.
- */
-function parsePaste(text, needsDenominator) {
-  const errors = [];
-  const rows = [];
-
-  for (const [i, raw] of text.trim().split(/\r?\n/).entries()) {
-    if (!raw.trim()) continue;
-    const cells = raw.split(/\t|,|;/).map((c) => c.trim());
-
-    // Skip a header row rather than reporting it as an error.
-    if (i === 0 && Number.isNaN(Number(cells[1]))) continue;
-
-    const [period, value, denominator, ...noteParts] = cells;
-
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(period)) {
-      errors.push(`Line ${i + 1}: "${period}" is not a date in YYYY-MM-DD form.`);
-      continue;
-    }
-    if (value === undefined || Number.isNaN(Number(value))) {
-      errors.push(`Line ${i + 1}: "${value}" is not a number.`);
-      continue;
-    }
-    if (needsDenominator && (!denominator || Number.isNaN(Number(denominator)))) {
-      errors.push(`Line ${i + 1}: this chart needs a denominator in the third column.`);
-      continue;
-    }
-
-    rows.push({
-      period,
-      value: Number(value),
-      denominator: needsDenominator ? Number(denominator) : null,
-      note: noteParts.join(" ").trim(),
-    });
-  }
-
-  return { rows, errors };
+  const latest = observations.map((o) => o.period).sort().at(-1) ?? null;
+  // The same stepping the data matrix uses, so a point added here lands on
+  // the same period as a row added there instead of drifting off by a day.
+  return stepPeriod(latest, cadence);
 }
 
 function PasteDialog({ measure, needsDenominator, onClose }) {
   const dispatch = useDispatch();
   const [text, setText] = useState("");
   const [errors, setErrors] = useState([]);
+  const [denominatorFirst, setDenominatorFirst] = useState(false);
 
   const submit = (event) => {
     event.preventDefault();
-    const { rows, errors: found } = parsePaste(text, needsDenominator);
+    const { rows, errors: found } = parsePaste(text, needsDenominator, {
+      cadence: measure.cadence,
+      denominatorFirst,
+    });
     if (found.length) {
       setErrors(found);
       return;
@@ -78,7 +40,9 @@ function PasteDialog({ measure, needsDenominator, onClose }) {
   };
 
   const columns = needsDenominator
-    ? "date, value, denominator, note"
+    ? denominatorFirst
+      ? "date, denominator, numerator, note"
+      : "date, numerator, denominator, note"
     : "date, value, note";
 
   return (
@@ -100,9 +64,29 @@ function PasteDialog({ measure, needsDenominator, onClose }) {
       <p className="paste-help">
         One row per period, columns in the order <code>{columns}</code>,
         separated by tabs or commas — so you can copy straight out of a
-        spreadsheet. A header row is ignored. Rows whose date already exists
-        will be replaced.
+        spreadsheet. Dates can be whatever your sheet shows:{" "}
+        <code>Jul-25</code>, <code>01/07/2025</code> and{" "}
+        <code>2025-07-01</code> all work, and each row is snapped to the
+        nearest collection period. A header row is ignored. Rows whose date
+        already exists will be replaced.
       </p>
+
+      {needsDenominator && (
+        <label className="paste-swap">
+          <input
+            type="checkbox"
+            checked={denominatorFirst}
+            onChange={(event) => {
+              setDenominatorFirst(event.target.checked);
+              setErrors([]);
+            }}
+          />
+          <span>
+            My total comes before the count — tick this if your sheet reads
+            <em> date, total, events</em> rather than events before total.
+          </span>
+        </label>
+      )}
 
       <form id="paste-form" onSubmit={submit} noValidate>
         <Field
@@ -170,7 +154,10 @@ function ObservationTable({ measure, observations }) {
         measureId: measure.id,
         period: nextPeriod(rows, measure.cadence),
         value: 0,
-        denominator: needsDenominator ? 0 : null,
+        // Null, not zero: a zero denominator is not a sample of none, it is
+        // an unanswerable division, and it used to blank the whole chart the
+        // instant a point was added.
+        denominator: null,
         note: "",
       },
     });

@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { shortDate } from "../../lib/format.js";
+import { periodLabel } from "../../lib/format.js";
 import "./ChartCanvas.css";
 
 const COLOR = {
@@ -43,24 +43,28 @@ function PointDot({ cx, cy, payload }) {
   );
 }
 
-function ChartTooltip({ active, payload, measure }) {
+/** "%" reads better welded on; any other unit needs its space. */
+const withUnit = (n, unit) =>
+  unit === "%" ? `${n}%` : unit ? `${n} ${unit}` : `${n}`;
+
+function ChartTooltip({ active, payload, measure, cadence }) {
   if (!active || !payload?.length) return null;
   const point = payload[0].payload;
-  const unit = measure.unit ? ` ${measure.unit}` : "";
+  // A padded slot on a shared axis carries no reading at all.
+  if (!Number.isFinite(point.plotted)) return null;
 
   return (
     <div className="chart-tip">
-      <strong>{shortDate(point.period)}</strong>
+      <strong>{periodLabel(point.period, cadence)}</strong>
       <div className="chart-tip-value">
-        {point.plotted.toFixed(2)}
-        {unit}
+        {withUnit(point.plotted.toFixed(2), measure.unit)}
       </div>
       {point.denominator && (
         <div className="chart-tip-row">
           {point.value} of {point.denominator}
         </div>
       )}
-      {point.ucl !== null && (
+      {Number.isFinite(point.lcl) && Number.isFinite(point.ucl) && (
         <div className="chart-tip-row">
           Limits {point.lcl.toFixed(2)} – {point.ucl.toFixed(2)}
         </div>
@@ -99,15 +103,11 @@ function ChartCanvas({
 }) {
   if (!chart.hasData) return null;
 
+  const cadence = measure.cadence ?? "monthly";
   const byPeriod = new Map(chart.points.map((p) => [p.period, p]));
 
   const data = (sharedPeriods ?? chart.points.map((p) => p.period)).map(
-    (period) => {
-      const point = byPeriod.get(period);
-      return point
-        ? { ...point, label: shortDate(point.period) }
-        : { period, label: shortDate(period), plotted: null, violations: [] };
-    },
+    (period) => byPeriod.get(period) ?? { period, plotted: null, violations: [] },
   );
 
   /**
@@ -115,16 +115,21 @@ function ChartCanvas({
    * reference line only renders if its value matches a slot exactly. An
    * intervention rarely lands on a collection date, so each annotation is
    * snapped to the nearest period. That is also how it should read: the
-   * change took effect somewhere around that data point.
+   * change took effect around that data point, and by convention the marker
+   * sits on the first period its effect could show in.
+   *
+   * It snaps to the period itself, not to the printed label. Two periods can
+   * share a label — thirteen months of data start and end in the same month —
+   * and matching on the label would put the marker on the wrong one.
    */
   const snapped = annotations
     .map((a) => {
       const target = new Date(a.date).getTime();
-      const nearest = chart.points.reduce((best, p) => {
+      const nearest = data.reduce((best, p) => {
         const d = Math.abs(new Date(p.period).getTime() - target);
-        return d < best.distance ? { point: p, distance: d } : best;
-      }, { point: null, distance: Infinity });
-      return nearest.point ? { ...a, label2: shortDate(nearest.point.period) } : null;
+        return d < best.distance ? { period: p.period, distance: d } : best;
+      }, { period: null, distance: Infinity });
+      return nearest.period ? { ...a, at: nearest.period } : null;
     })
     .filter(Boolean);
 
@@ -150,8 +155,12 @@ function ChartCanvas({
           style={onPointClick ? { cursor: "pointer" } : undefined}
         >
           <CartesianGrid stroke="#eef0f5" vertical={false} />
+          {/* Keyed on the period, which is unique, and only formatted for
+              display — so two periods that print the same never collapse
+              into one slot. */}
           <XAxis
-            dataKey="label"
+            dataKey="period"
+            tickFormatter={(period) => periodLabel(period, cadence)}
             tick={{ fontSize: 12, fill: "#545c78" }}
             tickLine={false}
             axisLine={{ stroke: "#e4e7f0" }}
@@ -174,7 +183,7 @@ function ChartCanvas({
                 : undefined
             }
           />
-          <Tooltip content={<ChartTooltip measure={measure} />} />
+          <Tooltip content={<ChartTooltip measure={measure} cadence={cadence} />} />
           <Legend
             iconType="plainline"
             iconSize={14}
@@ -188,24 +197,31 @@ function ChartCanvas({
           {snapped.map((a) => (
             <ReferenceLine
               key={a.id}
-              x={a.label2}
+              x={a.at}
               stroke={COLOR.annotation}
               strokeDasharray="4 3"
+              strokeWidth={1.5}
               label={{
                 value: a.label,
                 position: "top",
-                style: { fontSize: 11, fill: "#7d5106" },
+                style: { fontSize: 11, fill: "#7d5106", fontWeight: 600 },
               }}
             />
           ))}
 
+          {/* The target or agreed standard.
+              `extendDomain` matters: once a measure improves past its goal
+              the goal falls outside the plotted range, and Recharts discards
+              an out-of-range reference line without a word — so the line the
+              whole chart is judged against silently disappears. */}
           {measure.goal !== null && measure.goal !== undefined && (
             <ReferenceLine
               y={measure.goal}
+              ifOverflow="extendDomain"
               stroke={COLOR.goal}
               strokeDasharray="6 4"
               label={{
-                value: `Goal ${measure.goal}`,
+                value: `Goal ${withUnit(measure.goal, measure.unit)}`,
                 position: "right",
                 style: { fontSize: 11, fill: "#0f6a4e" },
               }}

@@ -119,3 +119,28 @@
   font-size: var(--fs-small);
   line-height: 1.5;
 }
+
+/* Sits above the chart rather than below it: the chart it is warning about
+   is unreadable until this is dealt with. */
+.chart-nudge {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin: 0 0 var(--sp-3);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--c-warning-soft);
+  color: var(--c-warning-text);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+
+.chart-nudge span {
+  flex: 1;
+  min-width: 15rem;
+}
+
+.chart-nudge .btn-quiet {
+  flex-shrink: 0;
+}

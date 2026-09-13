@@ -9,7 +9,7 @@ import {
   canonicalPeriod,
   rowCompleteness,
 } from "../../lib/matrix.js";
-import { shortDate } from "../../lib/format.js";
+import { periodLabel } from "../../lib/format.js";
 import { useDispatch } from "../../store/context.js";
 import "./DataMatrix.css";
 
@@ -232,7 +232,7 @@ function DataMatrix({
                       <input
                         type="date"
                         value={period}
-                        aria-label={`Period, currently ${shortDate(period)}`}
+                        aria-label={`Period, currently ${periodLabel(period, cadence)}`}
                         onChange={(e) => movePeriod(period, e.target.value)}
                       />
                     </th>
@@ -250,7 +250,7 @@ function DataMatrix({
                             step="any"
                             inputMode="decimal"
                             value={cell?.[field] ?? ""}
-                            aria-label={`${measure.name}, ${field === "value" ? (needsDenominator(measure) ? "numerator" : "value") : "denominator"}, ${shortDate(period)}`}
+                            aria-label={`${measure.name}, ${field === "value" ? (needsDenominator(measure) ? "numerator" : "value") : "denominator"}, ${periodLabel(period, cadence)}`}
                             onChange={(e) =>
                               setCell(measure, period, field, e.target.value)
                             }
@@ -273,7 +273,7 @@ function DataMatrix({
                       <button
                         type="button"
                         className="matrix-remove"
-                        aria-label={`Remove the ${shortDate(period)} row`}
+                        aria-label={`Remove the ${periodLabel(period, cadence)} row`}
                         onClick={() => setConfirmRow(period)}
                       >
                         <i className="bi bi-trash3" aria-hidden="true" />
@@ -301,7 +301,7 @@ function DataMatrix({
         >
           <p style={{ marginTop: 0 }}>
             Every measure&rsquo;s data point for{" "}
-            <strong>{shortDate(confirmRow)}</strong> will be deleted. This
+            <strong>{periodLabel(confirmRow, cadence)}</strong> will be deleted. This
             cannot be undone.
           </p>
           <div

@@ -1,0 +1,152 @@
+{
+  "format": "variation.project.v1",
+  "exportedAt": "2026-09-13T18:58:04.546Z",
+  "project": {
+    "id": "p-tears",
+    "name": "Children arriving in tears to theatre",
+    "aim": "Reduce the proportion of children arriving in the anaesthetic room in tears to below 10% by July 2026.",
+    "department": "paediatrics",
+    "phase": "sustaining",
+    "leadId": null,
+    "memberIds": [],
+    "startDate": "2025-07-01",
+    "targetDate": "2026-07-01"
+  },
+  "measures": [
+    {
+      "id": "m-tears",
+      "projectId": "p-tears",
+      "name": "Arrived in tears",
+      "role": "outcome",
+      "chartType": "p",
+      "unit": "%",
+      "multiplier": 100,
+      "direction": "lower",
+      "goal": 10,
+      "cadence": "monthly",
+      "baselineEnd": "2025-12-01"
+    }
+  ],
+  "observations": [
+    {
+      "id": "o-0",
+      "measureId": "m-tears",
+      "period": "2025-07-01",
+      "value": 17,
+      "denominator": 21,
+      "note": ""
+    },
+    {
+      "id": "o-1",
+      "measureId": "m-tears",
+      "period": "2025-08-01",
+      "value": 13,
+      "denominator": 18,
+      "note": ""
+    },
+    {
+      "id": "o-2",
+      "measureId": "m-tears",
+      "period": "2025-09-01",
+      "value": 7,
+      "denominator": 12,
+      "note": ""
+    },
+    {
+      "id": "o-3",
+      "measureId": "m-tears",
+      "period": "2025-10-01",
+      "value": 7,
+      "denominator": 15,
+      "note": ""
+    },
+    {
+      "id": "o-4",
+      "measureId": "m-tears",
+      "period": "2025-11-01",
+      "value": 6,
+      "denominator": 14,
+      "note": ""
+    },
+    {
+      "id": "o-5",
+      "measureId": "m-tears",
+      "period": "2025-12-01",
+      "value": 9,
+      "denominator": 18,
+      "note": ""
+    },
+    {
+      "id": "o-6",
+      "measureId": "m-tears",
+      "period": "2026-01-01",
+      "value": 0,
+      "denominator": 12,
+      "note": ""
+    },
+    {
+      "id": "o-7",
+      "measureId": "m-tears",
+      "period": "2026-02-01",
+      "value": 0,
+      "denominator": 13,
+      "note": ""
+    },
+    {
+      "id": "o-8",
+      "measureId": "m-tears",
+      "period": "2026-03-01",
+      "value": 0,
+      "denominator": 8,
+      "note": ""
+    },
+    {
+      "id": "o-9",
+      "measureId": "m-tears",
+      "period": "2026-04-01",
+      "value": 1,
+      "denominator": 19,
+      "note": ""
+    },
+    {
+      "id": "o-10",
+      "measureId": "m-tears",
+      "period": "2026-05-01",
+      "value": 0,
+      "denominator": 8,
+      "note": ""
+    },
+    {
+      "id": "o-11",
+      "measureId": "m-tears",
+      "period": "2026-06-01",
+      "value": 0,
+      "denominator": 16,
+      "note": ""
+    },
+    {
+      "id": "o-12",
+      "measureId": "m-tears",
+      "period": "2026-07-01",
+      "value": 0,
+      "denominator": 17,
+      "note": ""
+    }
+  ],
+  "cycles": [
+    {
+      "id": "c-1",
+      "projectId": "p-tears",
+      "number": 1,
+      "title": "Intervention",
+      "plan": "",
+      "prediction": "",
+      "doNotes": "",
+      "studyNotes": "",
+      "act": null,
+      "startDate": "2026-01-01",
+      "endDate": null,
+      "annotate": true
+    }
+  ]
+}

@@ -69,3 +69,36 @@ export function greetingFor(now = new Date()) {
   if (hour < 18) return "Good afternoon";
   return "Good evening";
 }
+
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+/**
+ * The label for a collection period on a chart axis.
+ *
+ * The year is not decoration. A chart covering thirteen months starts and
+ * ends in the same month, and on a categorical axis "1 Jul" at both ends is
+ * not merely ambiguous — it is literally the same category twice, which also
+ * sends any reference line matched by label to the wrong end of the chart.
+ *
+ * The date is split rather than passed to `Date`, so a period never drifts
+ * across a boundary for a reader west of GMT.
+ */
+export function periodLabel(iso, cadence = "monthly") {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-").map(Number);
+  const year = String(y).slice(-2);
+  const month = MONTHS[m - 1] ?? "";
+
+  switch (cadence) {
+    case "monthly":
+      return `${month} ${year}`;
+    case "quarterly":
+      return `Q${Math.floor((m - 1) / 3) + 1} ${year}`;
+    default:
+      // Daily, weekly and fortnightly periods need the day to tell them apart.
+      return `${d} ${month} ${year}`;
+  }
+}

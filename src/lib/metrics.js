@@ -181,3 +181,28 @@ export function findPerson(people, id) {
 export function findPeople(people, ids = []) {
   return ids.map((id) => findPerson(people, id)).filter(Boolean);
 }
+
+/** Longest annotation label that will not collide with the plot beside it. */
+const MAX_MARKER_LABEL = 22;
+
+/**
+ * PDSA cycles flagged to show on charts, as intervention markers.
+ *
+ * The cycle's own title carries the meaning — "Intervention", "Play
+ * specialist at induction" — so it is preferred over "PDSA 1", which tells a
+ * reader nothing about what changed. Long titles fall back to the number
+ * rather than running across the chart.
+ */
+export function annotationsFor(cycles) {
+  return cycles
+    .filter((c) => c.annotate && c.startDate)
+    .map((c) => {
+      const title = c.title?.trim() ?? "";
+      return {
+        id: c.id,
+        date: c.startDate,
+        label:
+          title && title.length <= MAX_MARKER_LABEL ? title : `PDSA ${c.number}`,
+      };
+    });
+}

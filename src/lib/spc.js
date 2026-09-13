@@ -403,23 +403,52 @@ export function computeChart(measure, observations) {
     centre: null,
     signals: [],
     warnings: [],
+    incomplete: { count: 0, periods: [] },
     baseline: { frozen: false, count: 0, end: measure.baselineEnd ?? null },
     hasData: false,
   };
 
-  // Check the raw observations before plotting: a p- or u-chart observation
-  // with no denominator plots as null and would silently vanish from the
-  // series, leaving "no data" where the real answer is "no denominator".
   const mine = observations.filter((o) => o.measureId === measure.id);
-  if (mine.length > 0 && spec?.needsDenominator && mine.some((o) => !o.denominator)) {
-    return { ...empty, warnings: ["missing-denominator"] };
-  }
 
-  const series = buildSeries(measure, observations);
-  if (series.length === 0) return empty;
+  /*
+   * A row with a numerator but no denominator yet cannot be plotted. It must
+   * not take the rest of the chart down with it, though: half-filled rows are
+   * the normal state of the data matrix while someone is working through it,
+   * and a chart that disappears mid-entry reads as broken rather than as
+   * incomplete. So the incomplete periods are named and the rest is drawn.
+   */
+  const incompletePeriods = spec?.needsDenominator
+    ? mine
+        .filter(
+          (o) =>
+            o.value !== null &&
+            o.value !== undefined &&
+            !Number.isNaN(o.value) &&
+            !o.denominator,
+        )
+        .map((o) => o.period)
+        .sort()
+    : [];
+
+  // np plots the raw count, so unlike p and u it survives `plottedValue`
+  // without a denominator and has to be dropped here instead.
+  const series = buildSeries(measure, observations)
+    .filter((p) => !spec?.needsDenominator || p.denominator)
+    .map((p, index) => ({ ...p, index }));
+
+  const incomplete = { count: incompletePeriods.length, periods: incompletePeriods };
+
+  if (series.length === 0) {
+    // Nothing plots at all. If the reason is missing denominators, say so —
+    // "no data" would send the user looking for data they have already typed.
+    return incompletePeriods.length > 0
+      ? { ...empty, warnings: ["missing-denominator"], incomplete }
+      : { ...empty, incomplete };
+  }
 
   const { baseline, frozen } = splitBaseline(series, measure.baselineEnd);
   const warnings = [];
+  if (incompletePeriods.length > 0) warnings.push("partial-rows");
 
   /* --- run chart: median only, no limits ------------------------------ */
   if (type === "run") {
@@ -470,15 +499,13 @@ export function computeChart(measure, observations) {
       signals,
       warnings,
       runsTest: runs,
+      incomplete,
       baseline: { frozen, count: baseline.length, end: measure.baselineEnd ?? null },
       hasData: true,
     };
   }
 
   /* --- control charts -------------------------------------------------- */
-  if (spec?.needsDenominator && baseline.some((p) => !p.denominator)) {
-    return { ...empty, warnings: ["missing-denominator"], hasData: false };
-  }
   if (type === "np") {
     const denominators = new Set(series.map((p) => p.denominator));
     if (denominators.size > 1) {
@@ -552,6 +579,7 @@ export function computeChart(measure, observations) {
     signals,
     warnings,
     detail: limits,
+    incomplete,
     baseline: { frozen, count: baseline.length, end: measure.baselineEnd ?? null },
     hasData: true,
   };

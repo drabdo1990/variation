@@ -4,7 +4,7 @@ import EmptyState from "../../components/ui/EmptyState.jsx";
 import ChartCanvas from "../measures/ChartCanvas.jsx";
 import SignalBadge from "../measures/SignalBadge.jsx";
 import { MEASURE_ROLES } from "../../data/vocab.js";
-import { measureStatus } from "../../lib/metrics.js";
+import { measureStatus, annotationsFor } from "../../lib/metrics.js";
 import "./FamilyCharts.css";
 
 /**
@@ -26,9 +26,7 @@ function FamilyCharts({
   onToggle,
   onPointClick,
 }) {
-  const annotations = cycles
-    .filter((c) => c.annotate && c.startDate)
-    .map((c) => ({ id: c.id, date: c.startDate, label: `PDSA ${c.number}` }));
+  const annotations = annotationsFor(cycles);
 
   const visible = measures.filter((m) => !hidden.has(m.id));
 
@@ -97,8 +95,9 @@ function FamilyCharts({
                   />
                 ) : (
                   <p className="family-nodata">
-                    No data entered for this measure yet — fill a cell in its
-                    column above and the chart appears here.
+                    {chart.incomplete?.count > 0
+                      ? "Every row here still needs a denominator — fill the second column and the chart appears."
+                      : "No data entered for this measure yet — fill a cell in its column above and the chart appears here."}
                   </p>
                 )}
               </section>

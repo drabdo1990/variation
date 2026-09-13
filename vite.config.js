@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   // Relative base so the build works when served from a subpath
-  // (GitHub Pages project site: /project-management-website/) as well
+  // (GitHub Pages project site: /variation/) as well
   // as from a domain root.
   base: "./",
   plugins: [react()],

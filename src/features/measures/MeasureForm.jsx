@@ -44,8 +44,36 @@ function MeasureForm({ measure, projectId, onClose }) {
   const [errors, setErrors] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const set = (key) => (event) =>
+  /** Fields the user has typed in themselves are never overwritten. */
+  const [touched, setTouched] = useState({ unit: false, multiplier: false });
+
+  const set = (key) => (event) => {
+    if (key === "unit" || key === "multiplier") {
+      setTouched((t) => ({ ...t, [key]: true }));
+    }
     setValues((v) => ({ ...v, [key]: event.target.value }));
+  };
+
+  /**
+   * Picking a proportion sets the scale to a percentage.
+   *
+   * Leaving it at "per unit" is a trap: the chart then plots 0.81 where the
+   * team means 81%, and a goal entered as 10 lands so far outside the data
+   * that the goal line is dropped from the chart entirely. A clinical
+   * proportion is a percentage in almost every case. np is deliberately
+   * excluded — it plots a raw count, not a rate.
+   */
+  const setChartType = (event) => {
+    const chartType = event.target.value;
+    setValues((v) => {
+      const next = { ...v, chartType };
+      if (chartType === "p") {
+        if (!touched.multiplier) next.multiplier = 100;
+        if (!touched.unit && !v.unit.trim()) next.unit = "%";
+      }
+      return next;
+    });
+  };
 
   const chosen = CHART_GUIDE.find((g) => g.id === values.chartType);
 
@@ -158,7 +186,7 @@ function MeasureForm({ measure, projectId, onClose }) {
                   name="chartType"
                   value={option.id}
                   checked={values.chartType === option.id}
-                  onChange={set("chartType")}
+                  onChange={setChartType}
                 />
                 <span className="guide-body">
                   <strong>{option.question}</strong>
@@ -224,7 +252,7 @@ function MeasureForm({ measure, projectId, onClose }) {
         </div>
 
         {chosen?.needsDenominator && (
-          <Field label="Scale" hint="How the rate is expressed">
+          <Field label="Shown as" hint="The scale the chart plots on">
             {(props) => (
               <select {...props} value={values.multiplier} onChange={set("multiplier")}>
                 {Object.entries(MULTIPLIERS).map(([key, label]) => (
