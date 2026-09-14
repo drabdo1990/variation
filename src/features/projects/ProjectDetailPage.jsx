@@ -26,6 +26,13 @@ import {
   findPeople,
 } from "../../lib/metrics.js";
 import { exportProject } from "../../store/state.js";
+import { downloadJson, downloadCsv } from "../../lib/download.js";
+import { csvFile } from "../../lib/csv.js";
+import {
+  observationRows,
+  OBSERVATION_COLUMNS,
+  fileStem,
+} from "../../lib/reports.js";
 import { shortDate, longDate } from "../../lib/format.js";
 import { useAppState, useDispatch } from "../../store/context.js";
 import "./ProjectDetail.css";
@@ -98,18 +105,16 @@ function ProjectDetailPage() {
   const lead = findPerson(state.people, project.leadId);
   const members = findPeople(state.people, project.memberIds);
 
-  const download = () => {
-    const bundle = exportProject(state, project.id);
-    const blob = new Blob([JSON.stringify(bundle, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${project.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  /** A full bundle, for reimporting into Variation elsewhere. */
+  const downloadBundle = () =>
+    downloadJson(`${fileStem(project.name)}.json`, exportProject(state, project.id));
+
+  /** The raw readings, for a spreadsheet or a governance report appendix. */
+  const downloadData = () =>
+    downloadCsv(
+      `${fileStem(project.name)}-data.csv`,
+      csvFile(observationRows(state, project.id), OBSERVATION_COLUMNS),
+    );
 
   const addTask = (event) => {
     event.preventDefault();
@@ -137,8 +142,21 @@ function ProjectDetailPage() {
           </>
         }
       >
-        <button type="button" className="btn-quiet" onClick={download}>
-          <i className="bi bi-download" aria-hidden="true" /> Export
+        <button
+          type="button"
+          className="btn-quiet"
+          onClick={downloadData}
+          title="Every reading in this project as a spreadsheet"
+        >
+          <i className="bi bi-filetype-csv" aria-hidden="true" /> Export CSV
+        </button>
+        <button
+          type="button"
+          className="btn-quiet"
+          onClick={downloadBundle}
+          title="The whole project, to import into Variation elsewhere"
+        >
+          <i className="bi bi-download" aria-hidden="true" /> Export JSON
         </button>
         <button type="button" className="btn-quiet" onClick={() => setEditing(true)}>
           <i className="bi bi-pencil" aria-hidden="true" /> Edit

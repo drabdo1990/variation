@@ -17,6 +17,9 @@ import {
   annotationsFor,
 } from "../../lib/metrics.js";
 import { periodLabel } from "../../lib/format.js";
+import { downloadCsv } from "../../lib/download.js";
+import { csvFile } from "../../lib/csv.js";
+import { chartRows, CHART_COLUMNS, fileStem } from "../../lib/reports.js";
 import { useAppState, useDispatch } from "../../store/context.js";
 
 const WARNINGS = {
@@ -30,6 +33,12 @@ const WARNINGS = {
     "This chart needs a denominator on every data point, and none of these have one yet. Add them, or switch the measure to a chart that does not need one.",
   "np-needs-constant-denominator":
     "An np-chart needs exactly the same sample size every period. Your denominators vary — use a p-chart instead.",
+  "few-points-for-dispersion":
+    "The dispersion factor is estimated from fewer than 10 baseline points, so it is not yet a reliable correction. Treat the limits as provisional.",
+  "dispersion-not-estimated":
+    "The baseline does not vary from period to period, so no dispersion factor could be estimated. This chart is currently identical to an uncorrected one.",
+  "short-phase":
+    "At least one phase has fewer than 8 points. Limits drawn from that few are wide and unstable — treat that stretch of the chart as provisional.",
 };
 
 const RULE_LABELS = {
@@ -80,7 +89,27 @@ function MeasureDetailPage() {
    * so the fix is offered instead of applied.
    */
   const plottingAsFraction =
-    measure.chartType === "p" && Number(measure.multiplier) === 1;
+    ["p", "p-prime"].includes(measure.chartType) &&
+    Number(measure.multiplier) === 1;
+
+  /*
+   * Signals carry point indices, not positions. They happen to be the same
+   * today, but looking one up by index rather than trusting array order keeps
+   * that an implementation detail — phases make the coupling easy to break.
+   */
+  const byIndex = new Map(chart.points.map((p) => [p.index, p]));
+  const pointAt = (index) => byIndex.get(index);
+
+  /**
+   * The chart as a table. This is the one that goes into a governance report:
+   * it carries the limits each point was judged against, so a reader can
+   * check the conclusion without rerunning the analysis.
+   */
+  const downloadChart = () =>
+    downloadCsv(
+      `${fileStem(project.name)}-${fileStem(measure.name)}-chart.csv`,
+      csvFile(chartRows(chart), CHART_COLUMNS),
+    );
 
   return (
     <>
@@ -95,6 +124,16 @@ function MeasureDetailPage() {
           </>
         }
       >
+        {chart.hasData && (
+          <button
+            type="button"
+            className="btn-quiet"
+            onClick={downloadChart}
+            title="Every point with the centre line and limits it was judged against"
+          >
+            <i className="bi bi-filetype-csv" aria-hidden="true" /> Export CSV
+          </button>
+        )}
         <button type="button" className="btn-quiet" onClick={() => setEditing(true)}>
           <i className="bi bi-sliders" aria-hidden="true" /> Chart settings
         </button>
@@ -162,7 +201,23 @@ function MeasureDetailPage() {
                     <dd>
                       {chart.points[0].lcl.toFixed(2)} –{" "}
                       {chart.points[0].ucl.toFixed(2)}
-                      {["p", "u"].includes(chart.chartType) && " (first point)"}
+                      {["p", "u", "p-prime", "u-prime"].includes(
+                        chart.chartType,
+                      ) && " (first point)"}
+                    </dd>
+                  </div>
+                )}
+                {/* Laney charts only. The factor is the whole justification
+                    for the wider limits, so it is stated rather than buried. */}
+                {chart.detail?.dispersionApplicable && (
+                  <div>
+                    <dt>Dispersion (σz)</dt>
+                    <dd>
+                      {chart.detail.sigmaZ.toFixed(2)} — limits{" "}
+                      {chart.detail.sigmaZ >= 1
+                        ? `${chart.detail.sigmaZ.toFixed(1)}× wider`
+                        : `${(1 / chart.detail.sigmaZ).toFixed(1)}× tighter`}{" "}
+                      than an uncorrected chart
                     </dd>
                   </div>
                 )}
@@ -179,6 +234,45 @@ function MeasureDetailPage() {
                   <dd>{chart.points.length}</dd>
                 </div>
               </dl>
+
+              {/* With one phase the summary above says everything. With more,
+                  each stretch has its own centre line and limits, and which
+                  is which is the first thing a reader needs. */}
+              {chart.phases.length > 1 && (
+                <table className="phase-table">
+                  <caption>Limits by phase</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Phase</th>
+                      <th scope="col">From</th>
+                      <th scope="col">Points</th>
+                      <th scope="col">
+                        {chart.chartType === "run" ? "Median" : "Centre"}
+                      </th>
+                      <th scope="col">Baseline</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {chart.phases.map((phase) => (
+                      <tr key={phase.id}>
+                        <th scope="row">{phase.label}</th>
+                        <td>
+                          {phase.startsAt
+                            ? periodLabel(phase.startsAt, measure.cadence)
+                            : "Start"}
+                        </td>
+                        <td>{phase.count}</td>
+                        <td>{phase.centre.toFixed(2)}</td>
+                        <td>
+                          {phase.baseline.frozen
+                            ? `${phase.baseline.count} points, held fixed`
+                            : `all ${phase.count}`}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
 
               {chart.warnings.map((w) => (
                 <p className="chart-warning" key={w}>
@@ -215,12 +309,12 @@ function MeasureDetailPage() {
                           {" "}
                           —{" "}
                           {periodLabel(
-                            chart.points[signal.indices[0]].period,
+                            pointAt(signal.indices[0])?.period,
                             measure.cadence,
                           )}{" "}
                           to{" "}
                           {periodLabel(
-                            chart.points[signal.indices.at(-1)].period,
+                            pointAt(signal.indices.at(-1))?.period,
                             measure.cadence,
                           )}
                         </span>

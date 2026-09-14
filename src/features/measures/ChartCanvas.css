@@ -107,6 +107,47 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Per-phase limits. Wider than the shell on a phone, so it scrolls on its
+   own rather than pushing the page sideways. */
+.phase-table {
+  display: block;
+  overflow-x: auto;
+  width: 100%;
+  margin-top: var(--sp-4);
+  border-collapse: collapse;
+  font-size: var(--fs-small);
+  color: var(--c-ink-muted);
+}
+
+.phase-table caption {
+  text-align: left;
+  font-weight: 650;
+  color: var(--c-ink-faint);
+  padding-bottom: var(--sp-2);
+}
+
+.phase-table th,
+.phase-table td {
+  padding: var(--sp-2) var(--sp-3) var(--sp-2) 0;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.phase-table thead th {
+  font-weight: 600;
+  color: var(--c-ink-faint);
+}
+
+.phase-table tbody th {
+  font-weight: 650;
+  color: var(--c-ink);
+}
+
+.phase-table td {
+  font-variant-numeric: tabular-nums;
+}
+
 .chart-warning {
   display: flex;
   align-items: flex-start;

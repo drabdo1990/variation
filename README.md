@@ -44,20 +44,60 @@ stores the numerator and denominator and steps the limits accordingly.
 
 ### Charts
 
-Six chart types, picked by asking what you are counting rather than guessing
+Eight chart types, picked by asking what you are counting rather than guessing
 from the numbers:
 
 | Your data | Chart | Centre | Limits |
 |---|---|---|---|
 | A proportion of a group, group size varies | **p** | p̄ | p̄ ± 3√(p̄(1−p̄)/nᵢ) — per point |
+| A proportion of a very large group | **P′** | p̄ | p̄ ± 3σᵢ·σ_z — Laney |
 | A count out of a fixed sample | **np** | np̄ | np̄ ± 3√(np̄(1−p̄)) |
 | A rate over changing exposure | **u** | ū | ū ± 3√(ū/nᵢ) — per point |
+| A rate over very large exposure | **U′** | ū | ū ± 3σᵢ·σ_z — Laney |
 | A count over steady exposure | **c** | c̄ | c̄ ± 3√c̄ |
 | A measured value per period | **XmR** | x̄ | x̄ ± 2.660·MR̄ |
 | Not sure yet | **run** | median | none — non-parametric |
 
 Proportion limits are clamped to 0–100%; count and rate limits at zero, and
 a clamped limit is reported rather than hidden.
+
+### Laney P′ and U′, for hospital-scale denominators
+
+A p-chart assumes the only variation between periods is binomial — the luck
+of sampling. Real clinical data also varies because the periods genuinely
+differ: case mix, staffing, season. At the n of a ward audit nobody notices.
+At the n of a trust-wide one — tens of thousands of admissions — the binomial
+term shrinks to almost nothing, the limits close in on the centre line, and
+ordinary month-to-month noise is reported as special cause. In the worked
+test case, a standard p-chart flags **10 of 12** perfectly ordinary months.
+
+Laney's correction measures how much the subgroups actually disagree. Each
+baseline point becomes a z-score against its own uncorrected σ, and σ_z comes
+from the mean moving range of those z-scores, exactly as an XmR chart takes σ
+from MR̄. Binomial-only variation gives σ_z ≈ 1; a σ_z of 2.4 says the real
+spread is 2.4× what the model predicts, and the limits widen to match.
+
+σ_z is applied **unconditionally**, following Laney's published method as
+Minitab implements it, so the chart also corrects *under*dispersion — limits
+too wide, hiding real signals. P′ therefore differs from P even on
+well-behaved data. The factor is shown on the chart rather than buried,
+because it is the whole justification for the wider limits.
+
+### Phases
+
+Freezing a baseline answers "has anything changed?". Once the answer is yes
+and the new way of working has become standard practice, those limits have
+outlived their question: they describe a process that no longer exists, and
+holding the new one to them reports the same old news at every point.
+
+So a measure can be split into phases, each with its own centre line, its own
+limits and its own optional frozen baseline. The corollary matters as much:
+**no rule may span a boundary.** A run of eight points below the old centre
+line, caused by a change the team made deliberately and has already accounted
+for, is not a discovery. Rules run per phase, so it is never reported as one.
+
+A measure that has never been split is drawn as a single phase derived from
+its baseline date, so nothing about an existing measure changes.
 
 ### Signals
 
@@ -117,8 +157,33 @@ Everything persists to `localStorage` under `variation.state.v1`. There is no
 account, no server, and nothing is transmitted. Enter **aggregate numbers
 only** — never patient identifiers; the data entry screen says so too.
 
-To share a project, export it as JSON and send the file. Import rewrites the
-ids, so a colleague can take your project without it colliding with theirs.
+### A failed save is never silent
+
+`localStorage` holds about 5 MB, and crossing that throws on write. Swallowing
+that throw is the most damaging thing the app could do: it would keep
+accepting data, look entirely healthy, and lose the lot on the next refresh.
+So [`storage.js`](src/lib/storage.js) returns the outcome of every write
+instead of throwing, the app shows a gauge from 75% full, and an actual
+failure raises a banner that says changes are no longer being saved.
+
+The gauge is advisory — browsers differ on what counts against the cap — but
+a real write failure is authoritative, and that is what the banner reports.
+
+### Getting data out
+
+| Export | Contains | For |
+|---|---|---|
+| **Project JSON** | The whole project, ids rewritten on import | Handing a project to a colleague |
+| **Project CSV** | Every reading: measure, period, value, denominator, note | A spreadsheet, or checking the raw record |
+| **Chart CSV** | Each point beside the centre line and limits it was judged against, and any rules it broke | The appendix of a governance report |
+
+The chart table is the one that settles arguments: a reader can see how a
+conclusion was reached without rerunning the analysis.
+
+CSV files lead with a UTF-8 byte order mark so Excel reads accented names
+correctly, and any cell starting `=`, `+`, `-` or `@` is neutralised — notes
+are free text, and a spreadsheet will happily execute one. Numbers are exempt
+from that guard, so a negative reading stays a number.
 
 ---
 
@@ -127,9 +192,13 @@ ids, so a colleague can take your project without it colliding with theirs.
 ```
 src/
 ├── lib/
-│   ├── spc.js            All chart maths and rule detection
+│   ├── spc.js            All chart maths, phases and rule detection
 │   ├── spc.test.js       Worked examples, one per chart type
 │   ├── metrics.js        Project-level derivations
+│   ├── storage.js        Persistence, quota detection, the save-outcome store
+│   ├── csv.js            CSV formatting, escaping and the formula guard
+│   ├── reports.js        The exported tables
+│   ├── download.js       One file-download path for every export
 │   └── format.js         Dates and initials
 ├── store/                state.js (reducer) · AppStore.jsx · context.js
 ├── data/                 vocab.js (fixed choices) · sample.js (worked example)
@@ -183,7 +252,10 @@ npm run build
 npm run lint
 ```
 
-Charts are code-split, so routes without one never download Recharts.
+Recharts is bundled into its own `charts` chunk, so it caches separately from
+the app code and a change to either does not invalidate the other. It is still
+a static dependency of the entry graph, so every route downloads it; making
+that lazy is an open improvement, not something already done.
 
 ---
 
@@ -191,6 +263,11 @@ Charts are code-split, so routes without one never download Recharts.
 
 All state flows through one reducer in
 [`src/store/state.js`](src/store/state.js), and the only persistence is the
-`localStorage` write in [`AppStore.jsx`](src/store/AppStore.jsx). Replace that
-effect with API calls and the rest of the app is unchanged — components read
-through `useAppState()` and hold no fetching logic.
+`persist()` call in [`AppStore.jsx`](src/store/AppStore.jsx), which wraps
+[`storage.js`](src/lib/storage.js). Replace that effect with API calls and the
+rest of the app is unchanged — components read through `useAppState()` and
+hold no fetching logic.
+
+`persist()` already reports success or failure through a subscribable store,
+so a network write can surface its own errors through the same banner without
+touching any component.

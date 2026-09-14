@@ -1,30 +1,21 @@
 import { useEffect, useMemo, useReducer } from "react";
 import { StoreContext } from "./context.js";
 import { reducer, emptyState, STORAGE_KEY } from "./state.js";
-
-/** Read persisted state, tolerating a missing, corrupt, or blocked store. */
-function loadInitialState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return emptyState;
-    const parsed = JSON.parse(raw);
-    // Merge onto emptyState so a state saved by an older build that lacks
-    // a newer key still loads instead of crashing on undefined.
-    return { ...emptyState, ...parsed };
-  } catch {
-    return emptyState;
-  }
-}
+import { readState, persist } from "../lib/storage.js";
 
 export function AppStore({ children }) {
-  const [state, dispatch] = useReducer(reducer, undefined, loadInitialState);
+  const [state, dispatch] = useReducer(reducer, undefined, () =>
+    readState(STORAGE_KEY, emptyState),
+  );
 
+  /*
+   * `persist` records whether the save actually succeeded. A failure — a full
+   * store, or a browser refusing to persist at all — has to reach the user:
+   * the app would otherwise keep accepting data it is no longer keeping and
+   * lose it on the next refresh. StorageNotice reads the outcome.
+   */
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {
-      // Private mode or a full quota — the app still works in-memory.
-    }
+    persist(STORAGE_KEY, state);
   }, [state]);
 
   const value = useMemo(() => ({ state, dispatch }), [state]);

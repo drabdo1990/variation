@@ -22,13 +22,44 @@ const blank = (projectId) => ({
   goal: "",
   cadence: "monthly",
   baselineEnd: "",
+  /** Phases *after* the first — the first is the "Baseline ends" field. */
+  phases: [],
 });
+
+const newPhaseId = () =>
+  globalThis.crypto?.randomUUID?.() ?? `phase-${Date.now()}`;
+
+/**
+ * The form edits the phases after the first, because the first is already
+ * described by "Baseline ends" and asking for it twice would be confusing.
+ * The stored measure carries the full list, which is what `resolvePhases`
+ * expects.
+ */
+function toFormValues(measure) {
+  const stored = Array.isArray(measure.phases) ? measure.phases : [];
+
+  return {
+    ...measure,
+    goal: measure.goal ?? "",
+    baselineEnd: (stored[0]?.baselineEnd ?? measure.baselineEnd) || "",
+    phases: stored.slice(1).map((phase) => ({
+      id: phase.id ?? newPhaseId(),
+      label: phase.label ?? "",
+      startsAt: phase.startsAt ?? "",
+      baselineEnd: phase.baselineEnd ?? "",
+    })),
+  };
+}
 
 function validate(values) {
   const errors = {};
   if (!values.name.trim()) errors.name = "Give the measure a name.";
   if (values.goal !== "" && Number.isNaN(Number(values.goal))) {
     errors.goal = "The goal must be a number, or left blank.";
+  }
+  // A phase without a start date has no boundary, so it cannot be drawn.
+  if (values.phases.some((p) => !p.startsAt)) {
+    errors.phases = "Every phase needs a start date.";
   }
   return errors;
 }
@@ -37,9 +68,7 @@ function MeasureForm({ measure, projectId, onClose }) {
   const dispatch = useDispatch();
   const editing = Boolean(measure);
   const [values, setValues] = useState(
-    measure
-      ? { ...measure, goal: measure.goal ?? "", baselineEnd: measure.baselineEnd ?? "" }
-      : blank(projectId),
+    measure ? toFormValues(measure) : blank(projectId),
   );
   const [errors, setErrors] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -67,7 +96,7 @@ function MeasureForm({ measure, projectId, onClose }) {
     const chartType = event.target.value;
     setValues((v) => {
       const next = { ...v, chartType };
-      if (chartType === "p") {
+      if (chartType === "p" || chartType === "p-prime") {
         if (!touched.multiplier) next.multiplier = 100;
         if (!touched.unit && !v.unit.trim()) next.unit = "%";
       }
@@ -77,11 +106,53 @@ function MeasureForm({ measure, projectId, onClose }) {
 
   const chosen = CHART_GUIDE.find((g) => g.id === values.chartType);
 
+  const setPhase = (index, key) => (event) =>
+    setValues((v) => ({
+      ...v,
+      phases: v.phases.map((phase, i) =>
+        i === index ? { ...phase, [key]: event.target.value } : phase,
+      ),
+    }));
+
+  const addPhase = () =>
+    setValues((v) => ({
+      ...v,
+      phases: [
+        ...v.phases,
+        { id: newPhaseId(), label: "", startsAt: "", baselineEnd: "" },
+      ],
+    }));
+
+  const removePhase = (index) =>
+    setValues((v) => ({
+      ...v,
+      phases: v.phases.filter((_, i) => i !== index),
+    }));
+
   const submit = (event) => {
     event.preventDefault();
     const found = validate(values);
     setErrors(found);
     if (Object.keys(found).length) return;
+
+    const baselineEnd = values.baselineEnd || null;
+
+    /*
+     * Only store a phase list when the measure is actually split. Leaving it
+     * empty keeps the measure in the shape every earlier version saved, and
+     * `resolvePhases` derives the single phase from `baselineEnd`.
+     */
+    const phases = values.phases.length
+      ? [
+          { id: "phase-1", label: "Baseline", startsAt: null, baselineEnd },
+          ...values.phases.map((phase, i) => ({
+            id: phase.id,
+            label: phase.label.trim() || `Phase ${i + 2}`,
+            startsAt: phase.startsAt,
+            baselineEnd: phase.baselineEnd || null,
+          })),
+        ]
+      : [];
 
     const payload = {
       ...values,
@@ -89,7 +160,8 @@ function MeasureForm({ measure, projectId, onClose }) {
       unit: values.unit.trim(),
       multiplier: Number(values.multiplier),
       goal: values.goal === "" ? null : Number(values.goal),
-      baselineEnd: values.baselineEnd || null,
+      baselineEnd,
+      phases,
     };
 
     dispatch(
@@ -278,6 +350,80 @@ function MeasureForm({ measure, projectId, onClose }) {
             />
           )}
         </Field>
+
+        {/* Re-baselining. Kept below the baseline field and empty by default,
+            because most measures never need it and the ones that do only need
+            it after the first change has held. */}
+        <fieldset className="phases">
+          <legend>Phases</legend>
+          <p className="phases-hint">
+            Once a change has become standard practice, its limits describe a
+            process that no longer exists. Start a new phase and everything
+            after it is measured against its own centre line — and no rule is
+            allowed to span the join.
+          </p>
+
+          {errors.phases && (
+            <p className="phases-error" role="alert">
+              {errors.phases}
+            </p>
+          )}
+
+          {values.phases.length === 0 ? (
+            <p className="phases-empty">
+              This measure is drawn as one phase.
+            </p>
+          ) : (
+            <ol className="phase-rows">
+              {values.phases.map((phase, i) => (
+                <li className="phase-row" key={phase.id}>
+                  <Field label="Name">
+                    {(props) => (
+                      <input
+                        {...props}
+                        value={phase.label}
+                        onChange={setPhase(i, "label")}
+                        placeholder={`Phase ${i + 2}`}
+                      />
+                    )}
+                  </Field>
+                  <Field label="Starts">
+                    {(props) => (
+                      <input
+                        {...props}
+                        type="date"
+                        value={phase.startsAt}
+                        onChange={setPhase(i, "startsAt")}
+                      />
+                    )}
+                  </Field>
+                  <Field label="Baseline ends" hint="Optional">
+                    {(props) => (
+                      <input
+                        {...props}
+                        type="date"
+                        value={phase.baselineEnd}
+                        onChange={setPhase(i, "baselineEnd")}
+                      />
+                    )}
+                  </Field>
+                  <button
+                    type="button"
+                    className="btn-quiet phase-remove"
+                    onClick={() => removePhase(i)}
+                    aria-label={`Remove ${phase.label || `phase ${i + 2}`}`}
+                  >
+                    <i className="bi bi-x-lg" aria-hidden="true" />
+                  </button>
+                </li>
+              ))}
+            </ol>
+          )}
+
+          <button type="button" className="btn-quiet" onClick={addPhase}>
+            <i className="bi bi-plus-lg" aria-hidden="true" /> Start a new phase
+          </button>
+        </fieldset>
       </form>
     </Modal>
   );

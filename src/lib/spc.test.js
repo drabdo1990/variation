@@ -8,6 +8,7 @@ import {
   buildSeries,
   mergeSpans,
   interpretChart,
+  resolvePhases,
   XMR_SIGMA_FACTOR,
 } from "./spc.js";
 
@@ -403,6 +404,52 @@ describe("Shewhart rules", () => {
     );
     expect(seven.signals.filter((s) => s.rule === "shift")).toHaveLength(0);
   });
+
+  /*
+   * The 2-of-3 rule is "two of three beyond 2 sigma ON THE SAME SIDE". The
+   * same twelve baseline points as the freezing suite below: mean 20,
+   * sigma 1.531270, so 2 sigma reaches 23.062540 above and 16.937460 below,
+   * and the 3-sigma limits are 24.593810 / 15.406190. A point at 24 is
+   * therefore beyond 2 sigma above without being outside the limits, and 16
+   * is the mirror of it below.
+   */
+  const twoSigmaBaseline = [20, 21, 19, 20, 22, 18, 21, 19, 20, 21, 20, 19];
+  const twoSigmaEnd = "2026-01-12"; // the twelfth generated date
+  const twoOfThree = (tail) =>
+    computeChart(
+      measure({ chartType: "xmr", baselineEnd: twoSigmaEnd }),
+      obs([...twoSigmaBaseline, ...tail]),
+    ).signals.filter((s) => s.rule === "two-of-three");
+
+  it("reports an excursion above and one below as two separate findings", () => {
+    // Two points beyond 2 sigma above, then two beyond 2 sigma below — an
+    // over-correction after an intervention. Merging the windows without
+    // regard to side would collapse these into one span reading 11-15,
+    // which describes a stretch wider than either real violation.
+    const signals = twoOfThree([24, 24, 16, 16]);
+
+    expect(signals).toHaveLength(2);
+    expect(signals.map((s) => s.side)).toEqual(["above", "below"]);
+    expect(signals[0].indices).toEqual([11, 12, 13, 14]);
+    expect(signals[1].indices).toEqual([13, 14, 15]);
+    expect(signals[0].indices).not.toContain(15);
+  });
+
+  it("names the side in the label, so the two findings read differently", () => {
+    const signals = twoOfThree([24, 24, 16, 16]);
+    expect(signals[0].label).toContain("above the centre line");
+    expect(signals[1].label).toContain("below the centre line");
+  });
+
+  it("still merges overlapping windows on the same side into one span", () => {
+    // Guards against over-correcting the fix: a single long stretch beyond
+    // 2 sigma is one finding, not one per sliding window.
+    const signals = twoOfThree([24, 24, 24, 24]);
+
+    expect(signals).toHaveLength(1);
+    expect(signals[0].side).toBe("above");
+    expect(signals[0].indices).toEqual([11, 12, 13, 14, 15]);
+  });
 });
 
 /* ==================================================================== *
@@ -454,6 +501,339 @@ describe("baseline freezing", () => {
       all,
     );
     expect(chart.baseline.frozen).toBe(false);
+  });
+});
+
+/* ==================================================================== *
+ * Laney P' and U' — the correction for overdispersion
+ * ==================================================================== */
+
+describe("Laney P′", () => {
+  /*
+   * A hospital-scale audit: 10,000 admissions a month and a compliance rate
+   * that genuinely moves between months. Worked from the published formula:
+   *   pBar    = 24300/120000 = 0.2025,  centre = 20.25%
+   *   sigma_i = sqrt(0.2025 x 0.7975 / 10000) x 100 = 0.40186285
+   *   z_i     = (plotted - centre) / sigma_i
+   *   MRbar(z) = 10.63230223,  sigma_z = MRbar / 1.128 = 9.42579985
+   * so P limits are 20.25 +/- 1.2056 and P' limits 20.25 +/- 11.3636.
+   */
+  const bigN = [1800, 2200, 1900, 2300, 1700, 2100, 2400, 1600, 2000, 2200, 1800, 2300].map(
+    (x) => [x, 10000],
+  );
+  const pct = (over = {}) => measure({ multiplier: 100, ...over });
+
+  it("derives sigma_z from the moving range of the baseline z-scores", () => {
+    const chart = computeChart(pct({ chartType: "p-prime" }), obs(bigN));
+    expect(chart.detail.sigmaZ).toBeCloseTo(9.4258, 4);
+    expect(chart.detail.dispersionApplicable).toBe(true);
+    expect(chart.detail.zCount).toBe(12);
+  });
+
+  it("widens the limits by sigma_z, leaving the centre line alone", () => {
+    const plain = computeChart(pct({ chartType: "p" }), obs(bigN));
+    const prime = computeChart(pct({ chartType: "p-prime" }), obs(bigN));
+
+    expect(prime.centre).toBeCloseTo(plain.centre, 10);
+    expect(plain.points[0].ucl).toBeCloseTo(21.455589, 5);
+    expect(prime.points[0].ucl).toBeCloseTo(31.613636, 5);
+    expect(prime.points[0].lcl).toBeCloseTo(8.886364, 5);
+  });
+
+  it("stops ordinary variation being reported as special cause at large n", () => {
+    // This is the whole point of the chart: at n = 10,000 the binomial limits
+    // are so tight that 10 of these 12 ordinary months breach them.
+    const plain = computeChart(pct({ chartType: "p" }), obs(bigN));
+    const prime = computeChart(pct({ chartType: "p-prime" }), obs(bigN));
+
+    const breaches = (chart) =>
+      chart.signals.find((s) => s.rule === "beyond-limits")?.indices.length ?? 0;
+
+    expect(breaches(plain)).toBe(10);
+    expect(breaches(prime)).toBe(0);
+  });
+
+  it("keeps the per-point sigma when denominators vary", () => {
+    // Same shape, changing sample sizes: sigma_z = 7.74406412.
+    const varying = [
+      [1800, 10000], [2310, 11000], [1710, 9000], [2400, 12000],
+      [1360, 8000], [2100, 10000], [2640, 11000], [1440, 9000],
+      [2000, 10000], [2640, 12000], [1620, 9000], [2530, 11000],
+    ];
+    const chart = computeChart(pct({ chartType: "p-prime" }), obs(varying));
+
+    expect(chart.detail.sigmaZ).toBeCloseTo(7.744064, 5);
+    // The 12,000-admission months still get tighter limits than the 8,000 ones.
+    const width = (i) => chart.points[i].ucl - chart.points[i].lcl;
+    expect(width(3)).toBeLessThan(width(4));
+  });
+
+  it("narrows the limits when the data is underdispersed", () => {
+    /*
+     * Deliberate: this follows Laney's published method, which applies
+     * sigma_z unconditionally. n = 100 gives a binomial sigma of 5%, but
+     * these months move by about 1%, so sigma_z = 0.20954252 and the limits
+     * tighten from +/-15 to +/-3.14. Limits that are too wide hide real
+     * signals, so correcting this direction is a feature, not an oversight.
+     */
+    const tight = [50, 51, 49, 50, 51, 49, 50, 50, 51, 49, 50, 51].map((x) => [x, 100]);
+    const plain = computeChart(pct({ chartType: "p" }), obs(tight));
+    const prime = computeChart(pct({ chartType: "p-prime" }), obs(tight));
+
+    expect(prime.detail.sigmaZ).toBeCloseTo(0.209543, 5);
+    expect(prime.points[0].ucl).toBeLessThan(plain.points[0].ucl);
+    expect(prime.points[0].ucl).toBeCloseTo(53.226467, 5);
+  });
+
+  it("falls back to an uncorrected chart when the baseline never moves", () => {
+    // Flat data gives MRbar = 0, and a sigma_z of 0 would collapse the limits
+    // onto the centre line and flag every future point.
+    const flat = Array.from({ length: 12 }, () => [2000, 10000]);
+    const chart = computeChart(pct({ chartType: "p-prime" }), obs(flat));
+
+    expect(chart.detail.sigmaZ).toBe(1);
+    expect(chart.detail.dispersionApplicable).toBe(false);
+    expect(chart.warnings).toContain("dispersion-not-estimated");
+  });
+
+  it("warns when the baseline is too short to estimate dispersion from", () => {
+    const short = computeChart(
+      pct({ chartType: "p-prime" }),
+      obs(bigN.slice(0, 6)),
+    );
+    expect(short.warnings).toContain("few-points-for-dispersion");
+  });
+
+  it("takes sigma_z from the baseline only, so frozen limits stay frozen", () => {
+    // Limits must not be renegotiated by the very improvement they exist to
+    // detect — that applies to the dispersion factor as much as to the centre.
+    const improved = [...bigN, ...Array.from({ length: 6 }, () => [500, 10000])];
+    const frozen = computeChart(
+      pct({ chartType: "p-prime", baselineEnd: "2026-01-12" }),
+      obs(improved),
+    );
+
+    expect(frozen.baseline.frozen).toBe(true);
+    expect(frozen.detail.sigmaZ).toBeCloseTo(9.4258, 4);
+    expect(frozen.detail.zCount).toBe(12);
+  });
+});
+
+describe("Laney U′", () => {
+  it("corrects a rate chart the same way", () => {
+    // Falls per 1,000 bed-days over large exposures.
+    const rows = [
+      [90, 12000], [140, 12000], [100, 12000], [150, 12000],
+      [85, 12000], [135, 12000], [155, 12000], [80, 12000],
+      [110, 12000], [145, 12000], [95, 12000], [150, 12000],
+    ];
+    const m = (type) => measure({ chartType: type, multiplier: 1000 });
+    const plain = computeChart(m("u"), obs(rows));
+    const prime = computeChart(m("u-prime"), obs(rows));
+
+    expect(prime.detail.sigmaZ).toBeGreaterThan(1);
+    expect(prime.centre).toBeCloseTo(plain.centre, 10);
+    expect(prime.points[0].ucl).toBeGreaterThan(plain.points[0].ucl);
+  });
+});
+
+/* ==================================================================== *
+ * Phases — re-baselining once a change has become standard practice
+ * ==================================================================== */
+
+describe("resolvePhases", () => {
+  it("reads a measure that has never been split as one phase", () => {
+    // Every measure saved before phases existed must keep working, which is
+    // why this is derived rather than migrated.
+    expect(resolvePhases(measure({ baselineEnd: "2026-01-12" }))).toEqual([
+      { id: "phase-1", label: "Baseline", startsAt: null, baselineEnd: "2026-01-12" },
+    ]);
+  });
+
+  it("orders declared phases by their start date", () => {
+    const out = resolvePhases(
+      measure({
+        phases: [
+          { id: "b", label: "After", startsAt: "2026-01-13" },
+          { id: "a", label: "Before", startsAt: "2026-01-01" },
+        ],
+      }),
+    );
+    expect(out.map((p) => p.id)).toEqual(["a", "b"]);
+  });
+
+  it("runs the first phase from the beginning whatever it claims", () => {
+    // Otherwise observations before its start date belong to no phase at all
+    // and would silently vanish from the chart.
+    const [first] = resolvePhases(
+      measure({ phases: [{ id: "a", startsAt: "2026-06-01" }] }),
+    );
+    expect(first.startsAt).toBeNull();
+  });
+
+  it("names an unlabelled phase by its position", () => {
+    const out = resolvePhases(measure({ phases: [{}, { startsAt: "2026-01-13" }] }));
+    expect(out.map((p) => p.label)).toEqual(["Phase 1", "Phase 2"]);
+  });
+});
+
+describe("re-baselined charts", () => {
+  /*
+   * Twelve points averaging 20, then twelve averaging 10 after an
+   * intervention that has since become standard practice. Per phase:
+   *   phase 1  MRbar = 1.72727273  sigma = 1.53127015  24.593810 / 15.406190
+   *   phase 2  MRbar = 1.09090909  sigma = 0.96711799  12.901354 /  7.098646
+   * Treated as one phase the centre falls to 15 and the limits become
+   * 19.625347 / 10.374653.
+   */
+  const before = [20, 21, 19, 20, 22, 18, 21, 19, 20, 21, 20, 19];
+  const after = [10, 11, 9, 10, 11, 10, 9, 10, 11, 9, 10, 10];
+  const all = obs([...before, ...after]);
+  const split = {
+    phases: [
+      { id: "p1", label: "Before", startsAt: null },
+      { id: "p2", label: "After", startsAt: "2026-01-13" },
+    ],
+  };
+
+  it("gives each phase its own centre line and limits", () => {
+    const chart = computeChart(measure({ chartType: "xmr", ...split }), all);
+
+    expect(chart.phases.map((p) => p.centre)).toEqual([20, 10]);
+    expect(chart.points[0].ucl).toBeCloseTo(24.593810, 5);
+    expect(chart.points[0].lcl).toBeCloseTo(15.406190, 5);
+    expect(chart.points[12].ucl).toBeCloseTo(12.901354, 5);
+    expect(chart.points[12].lcl).toBeCloseTo(7.098646, 5);
+  });
+
+  it("stops reporting a change the team made on purpose", () => {
+    /*
+     * Held to one set of limits this is a chart screaming about a step
+     * change everybody already knows about: twelve points above the centre,
+     * twelve below, and most of them outside the limits. Re-baselined, both
+     * phases are simply stable — which is the truth once the new way of
+     * working is standard practice.
+     */
+    const one = computeChart(measure({ chartType: "xmr" }), all);
+    const two = computeChart(measure({ chartType: "xmr", ...split }), all);
+
+    expect(one.signals.filter((s) => s.rule === "shift")).toHaveLength(2);
+    expect(one.signals.some((s) => s.rule === "beyond-limits")).toBe(true);
+    expect(two.signals).toEqual([]);
+  });
+
+  it("never lets a run span a boundary", () => {
+    // Six points below phase 1's centre running straight into phase 2 would
+    // be eight in a row if the rule were allowed to cross.
+    const straddling = obs([
+      ...[20, 21, 19, 20, 22, 18, 21, 19, 20, 21, 20, 19],
+      ...[19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19],
+    ]);
+    const chart = computeChart(
+      measure({ chartType: "xmr", ...split }),
+      straddling,
+    );
+
+    for (const signal of chart.signals) {
+      const phasesTouched = new Set(
+        signal.indices.map((i) => chart.points.find((p) => p.index === i).phaseId),
+      );
+      expect(phasesTouched.size).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("stamps every point with the phase it belongs to", () => {
+    const chart = computeChart(measure({ chartType: "xmr", ...split }), all);
+    expect(chart.points[11].phaseId).toBe("p1");
+    expect(chart.points[12].phaseId).toBe("p2");
+  });
+
+  it("names the phase in a signal's label, but only when there is a choice", () => {
+    const one = computeChart(measure({ chartType: "xmr" }), all);
+    expect(one.signals[0].label).not.toContain("(");
+
+    const drifting = computeChart(
+      measure({ chartType: "xmr", ...split }),
+      obs([...before, ...[9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 12, 9]]),
+    );
+    const shift = drifting.signals.find((s) => s.rule === "shift");
+    expect(shift.label).toContain("(After)");
+    expect(shift.phaseId).toBe("p2");
+  });
+
+  it("freezes each phase against its own baseline", () => {
+    // Phase 2's limits come from its first six points only, so the later
+    // improvement shows as a signal instead of moving the line with it.
+    const chart = computeChart(
+      measure({
+        chartType: "xmr",
+        phases: [
+          { id: "p1", label: "Before", startsAt: null },
+          { id: "p2", label: "After", startsAt: "2026-01-13", baselineEnd: "2026-01-18" },
+        ],
+      }),
+      obs([...before, ...[10, 11, 9, 10, 11, 10, 2, 2, 2, 2, 2, 2]]),
+    );
+
+    const second = chart.phases[1];
+    expect(second.baseline.frozen).toBe(true);
+    expect(second.baseline.count).toBe(6);
+    expect(second.centre).toBeCloseTo(10.166667, 5);
+    expect(chart.signals.some((s) => s.rule === "beyond-limits")).toBe(true);
+  });
+
+  it("reports the last phase as the chart's centre line", () => {
+    const chart = computeChart(measure({ chartType: "xmr", ...split }), all);
+    expect(chart.centre).toBe(10);
+    // The first phase's baseline stays where callers have always found it.
+    expect(chart.baseline.count).toBe(12);
+  });
+
+  it("warns about a phase too short to draw limits from", () => {
+    const chart = computeChart(
+      measure({
+        chartType: "xmr",
+        phases: [
+          { id: "p1", startsAt: null },
+          { id: "p2", startsAt: "2026-01-22" },
+        ],
+      }),
+      all,
+    );
+    expect(chart.warnings).toContain("short-phase");
+  });
+
+  it("gives a run chart a median per phase", () => {
+    const chart = computeChart(measure({ chartType: "run", ...split }), all);
+    expect(chart.phases.map((p) => p.centre)).toEqual([20, 10]);
+    expect(chart.median).toBe(10);
+  });
+
+  it("lets np accept a sample size that changed at a boundary", () => {
+    // Auditing 50 cases a month and then 80 is a perfectly ordinary thing to
+    // do at a re-baseline; only points sharing limits must share an n.
+    const rows = [
+      ...[5, 8, 6, 7, 4, 6, 5, 7, 6, 5, 8, 5].map((v) => [v, 50]),
+      ...[9, 12, 10, 11, 8, 10, 9, 11, 10, 9, 12, 9].map((v) => [v, 80]),
+    ];
+    const one = computeChart(measure({ chartType: "np" }), obs(rows));
+    const two = computeChart(measure({ chartType: "np", ...split }), obs(rows));
+
+    expect(one.hasData).toBe(false);
+    expect(one.warnings).toContain("np-needs-constant-denominator");
+    expect(two.hasData).toBe(true);
+    expect(two.phases).toHaveLength(2);
+  });
+
+  it("judges the latest point against its own phase, not the chart's", () => {
+    // A point at 10 is far below the combined centre of 15 but exactly on
+    // phase 2's. Reading it against the wrong line inverts the verdict.
+    const chart = computeChart(measure({ chartType: "xmr", ...split }), all);
+    const point = chart.points.at(-1);
+
+    expect(point.centre).toBe(10);
+    expect(point.plotted).toBe(10);
+    expect(chart.centre).toBe(10);
   });
 });
 

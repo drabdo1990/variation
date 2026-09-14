@@ -96,6 +96,14 @@ export const CHART_GUIDE = [
     needsDenominator: true,
   },
   {
+    id: "p-prime",
+    question: "A proportion of a very large group",
+    example: "% of 40,000 monthly admissions screened on arrival",
+    detail:
+      "Same as a proportion, but the numbers are big enough that an ordinary p-chart flags almost every month. Laney's P′ corrects for that.",
+    needsDenominator: true,
+  },
+  {
     id: "np",
     question: "A count out of a fixed sample",
     example: "Number of non-compliant cases out of exactly 50 audited each month",
@@ -107,6 +115,14 @@ export const CHART_GUIDE = [
     question: "A rate over changing exposure",
     example: "Falls per 1,000 bed-days",
     detail: "You count events against an amount of opportunity that varies.",
+    needsDenominator: true,
+  },
+  {
+    id: "u-prime",
+    question: "A rate over very large exposure",
+    example: "Falls per 1,000 bed-days across a whole trust",
+    detail:
+      "Same as a rate, but over exposures large enough that an ordinary u-chart flags ordinary variation. Laney's U′ corrects for that.",
     needsDenominator: true,
   },
   {

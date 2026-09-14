@@ -1,0 +1,53 @@
+.storage-notice {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: flex-start;
+  padding: var(--sp-3) var(--sp-4);
+  margin-bottom: var(--sp-5);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  font-size: var(--fs-small);
+}
+
+.storage-notice > .bi {
+  flex: none;
+  margin-top: 1px;
+  font-size: 1rem;
+}
+
+.storage-notice-body {
+  min-width: 0;
+}
+
+.storage-notice p {
+  margin: 0;
+}
+
+.storage-notice-warning {
+  background: var(--c-warning-soft);
+  border-color: var(--c-warning);
+  color: var(--c-warning-text);
+}
+
+.storage-notice-danger {
+  background: var(--c-danger-soft);
+  border-color: var(--c-danger);
+  color: var(--c-danger-text);
+}
+
+.storage-notice-gauge {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+  max-width: 420px;
+}
+
+.storage-notice-gauge .meter {
+  flex: 1;
+}
+
+.storage-notice-gauge small {
+  flex: none;
+  opacity: 0.85;
+}

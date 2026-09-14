@@ -1,4 +1,5 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useSyncExternalStore } from "react";
+import { subscribeToPersistence, getPersistence } from "../lib/storage.js";
 
 /**
  * Context and hooks live apart from the provider component so that the
@@ -20,4 +21,18 @@ export function useAppState() {
 
 export function useDispatch() {
   return useStore().dispatch;
+}
+
+/**
+ * How the last save went, and how close the store is to its ceiling.
+ *
+ * Read from the storage module's own store rather than from context, so a
+ * change here re-renders only what displays it.
+ */
+export function usePersistence() {
+  return useSyncExternalStore(
+    subscribeToPersistence,
+    getPersistence,
+    getPersistence,
+  );
 }

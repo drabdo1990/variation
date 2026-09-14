@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import SideNav from "./SideNav.jsx";
 import TopBar from "./TopBar.jsx";
+import StorageNotice from "./StorageNotice.jsx";
 import WelcomeDialog from "../../features/welcome/WelcomeDialog.jsx";
 import { useAppState } from "../../store/context.js";
 import "./AppShell.css";
@@ -40,6 +41,7 @@ function AppShell() {
           onEditName={() => setEditingName(true)}
         />
         <main className="shell-content">
+          <StorageNotice />
           <Outlet />
         </main>
       </div>

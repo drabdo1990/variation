@@ -10,6 +10,7 @@ import {
   Legend,
 } from "recharts";
 import { periodLabel } from "../../lib/format.js";
+import { CHART_TYPES } from "../../lib/spc.js";
 import "./ChartCanvas.css";
 
 const COLOR = {
@@ -19,6 +20,7 @@ const COLOR = {
   goal: "#1f9d76",
   violation: "#d4504a",
   annotation: "#d0891a",
+  phase: "#7b849e",
 };
 
 /**
@@ -133,9 +135,30 @@ function ChartCanvas({
     })
     .filter(Boolean);
 
-  // p- and u-charts have per-point limits; the rest are flat, so a single
-  // ReferenceLine is cleaner and lighter than a stepped series.
-  const variableLimits = ["p", "u"].includes(chart.chartType);
+  const phases = chart.phases ?? [];
+
+  /*
+   * Limits are drawn as a stepped series whenever they move: with each
+   * period's denominator on a ratio chart, and at every phase boundary on a
+   * re-baselined one. Otherwise they are flat, and a single ReferenceLine is
+   * cleaner and lighter. The points already carry their own limits either
+   * way, so nothing else has to change.
+   */
+  const variableLimits =
+    CHART_TYPES[chart.chartType]?.plotsAs === "ratio" || phases.length > 1;
+
+  /* Where one set of limits gives way to the next. */
+  const boundaries =
+    phases.length > 1
+      ? phases
+          .slice(1)
+          .map((phase) => ({
+            id: phase.id,
+            label: phase.label,
+            at: data.find((p) => p.period >= phase.startsAt)?.period ?? null,
+          }))
+          .filter((b) => b.at)
+      : [];
   const isRun = chart.chartType === "run";
 
   return (
@@ -192,6 +215,23 @@ function ChartCanvas({
               <span style={{ color: "var(--c-ink-muted)" }}>{value}</span>
             )}
           />
+
+          {/* Where the measure was re-baselined: everything to the right is
+              judged against a different centre line, so the break is drawn
+              solid and full-height rather than as another annotation. */}
+          {boundaries.map((b) => (
+            <ReferenceLine
+              key={b.id}
+              x={b.at}
+              stroke={COLOR.phase}
+              strokeWidth={1.5}
+              label={{
+                value: b.label,
+                position: "insideTopRight",
+                style: { fontSize: 11, fill: COLOR.phase, fontWeight: 600 },
+              }}
+            />
+          ))}
 
           {/* Intervention markers — where a PDSA cycle started. */}
           {snapped.map((a) => (

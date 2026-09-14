@@ -44,13 +44,31 @@ export const RULES = {
   spcTrend: 6,
 };
 
+/**
+ * `plotsAs` says what the drawn number *is*, which is what decides whether the
+ * denominator divides: "ratio" divides and scales by the multiplier, "count"
+ * plots the raw number, "value" plots the number as given. Keeping it here
+ * means a new chart type cannot be added without saying how it plots.
+ */
 export const CHART_TYPES = {
-  run: { label: "Run chart", needsDenominator: false, family: "run" },
-  xmr: { label: "XmR (individuals)", needsDenominator: false, family: "spc" },
-  p: { label: "p-chart (proportion)", needsDenominator: true, family: "spc" },
-  np: { label: "np-chart (count, fixed n)", needsDenominator: true, family: "spc" },
-  c: { label: "c-chart (count)", needsDenominator: false, family: "spc" },
-  u: { label: "u-chart (rate)", needsDenominator: true, family: "spc" },
+  run: { label: "Run chart", needsDenominator: false, family: "run", plotsAs: "value" },
+  xmr: { label: "XmR (individuals)", needsDenominator: false, family: "spc", plotsAs: "value" },
+  p: { label: "p-chart (proportion)", needsDenominator: true, family: "spc", plotsAs: "ratio" },
+  "p-prime": {
+    label: "P′ (Laney, large samples)",
+    needsDenominator: true,
+    family: "spc",
+    plotsAs: "ratio",
+  },
+  np: { label: "np-chart (count, fixed n)", needsDenominator: true, family: "spc", plotsAs: "count" },
+  c: { label: "c-chart (count)", needsDenominator: false, family: "spc", plotsAs: "count" },
+  u: { label: "u-chart (rate)", needsDenominator: true, family: "spc", plotsAs: "ratio" },
+  "u-prime": {
+    label: "U′ (Laney, large samples)",
+    needsDenominator: true,
+    family: "spc",
+    plotsAs: "ratio",
+  },
 };
 
 /* ------------------------------------------------------------------ *
@@ -71,14 +89,15 @@ const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
 /**
  * The number actually drawn for an observation.
  *
- * p and u divide by the denominator and scale by the measure's multiplier
- * (100 for a percentage, 1000 for "per 1000 bed-days"). np and c plot the
- * raw count. run and xmr divide only when a denominator was supplied.
+ * A "ratio" chart (p, u and their Laney variants) divides by the denominator
+ * and scales by the measure's multiplier — 100 for a percentage, 1000 for
+ * "per 1000 bed-days". A "count" chart (np, c) plots the raw count. run and
+ * xmr plot the value as given, dividing only when a denominator was supplied.
  */
 export function plottedValue(observation, measure) {
   const { value, denominator } = observation;
   const multiplier = measure.multiplier ?? 1;
-  const type = measure.chartType;
+  const plotsAs = CHART_TYPES[measure.chartType]?.plotsAs ?? "value";
 
   // A cell cleared in the data matrix leaves a row with no numerator. Left
   // unguarded that divides to a plotted zero, which would draw a real data
@@ -86,9 +105,9 @@ export function plottedValue(observation, measure) {
   // centre line.
   if (value === null || value === undefined || Number.isNaN(value)) return null;
 
-  if (type === "np" || type === "c") return value;
+  if (plotsAs === "count") return value;
 
-  if (type === "p" || type === "u") {
+  if (plotsAs === "ratio") {
     if (!denominator) return null;
     return (value / denominator) * multiplier;
   }
@@ -129,6 +148,71 @@ export function splitBaseline(series, baselineEnd) {
   // baseline cannot define limits and every point has to contribute.
   if (baseline.length < 2) return { baseline: series, frozen: false };
   return { baseline, frozen: true };
+}
+
+/* ------------------------------------------------------------------ *
+ * Phases
+ * ------------------------------------------------------------------ */
+
+/**
+ * The phases a measure is drawn in.
+ *
+ * Freezing a baseline answers "has anything changed?". Once the answer is yes
+ * and the new way of working has become standard practice, those limits have
+ * outlived their question: they describe a process that no longer exists, and
+ * holding the new one to them reports the same old news at every point. So QI
+ * practice re-baselines, and each phase gets its own centre line and limits.
+ *
+ * The corollary matters as much: no rule may span a boundary. A run of eight
+ * points below the old centre line, caused by a change the team made
+ * deliberately and has already accounted for, is not a discovery.
+ *
+ * A measure that has never been split reads as a single phase derived from its
+ * `baselineEnd`, so stored state, saved exports and existing charts keep
+ * working untouched and no migration is needed.
+ */
+export function resolvePhases(measure) {
+  const declared = Array.isArray(measure.phases) ? measure.phases : [];
+
+  if (declared.length === 0) {
+    return [
+      {
+        id: "phase-1",
+        label: "Baseline",
+        startsAt: null,
+        baselineEnd: measure.baselineEnd ?? null,
+      },
+    ];
+  }
+
+  const key = (phase) => phase.startsAt ?? "";
+
+  return declared
+    .map((phase, i) => ({
+      id: phase.id ?? `phase-${i + 1}`,
+      label: phase.label?.trim() || `Phase ${i + 1}`,
+      startsAt: phase.startsAt ?? null,
+      baselineEnd: phase.baselineEnd ?? null,
+    }))
+    .sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0))
+    // Whatever the first phase claims, it runs from the beginning: otherwise
+    // the earliest observations would fall outside every phase and vanish.
+    .map((phase, i) => (i === 0 ? { ...phase, startsAt: null } : phase));
+}
+
+/** Split a series so each phase carries the points that fall inside it. */
+export function segmentSeries(series, phases) {
+  return phases.map((phase, i) => {
+    const endsBefore = phases[i + 1]?.startsAt ?? null;
+    return {
+      phase,
+      points: series.filter(
+        (p) =>
+          (phase.startsAt === null || p.period >= phase.startsAt) &&
+          (endsBefore === null || p.period < endsBefore),
+      ),
+    };
+  });
 }
 
 /* ------------------------------------------------------------------ *
@@ -222,6 +306,106 @@ function uLimits(baseline, measure) {
     uBar,
   };
 }
+
+/* ------------------------------------------------------------------ *
+ * Laney's correction for overdispersion
+ * ------------------------------------------------------------------ */
+
+/**
+ * Laney's dispersion factor, sigma-z.
+ *
+ * A p-chart's limits assume the only variation between periods is binomial —
+ * the luck of sampling. Real clinical data also varies because the periods
+ * genuinely differ: case mix, staffing, season. At small n the binomial term
+ * dominates and nobody notices. At the n of a hospital-wide audit — tens of
+ * thousands of admissions — it shrinks to almost nothing, the limits close in
+ * on the centre line, and ordinary week-to-week noise is reported as special
+ * cause. That is overdispersion.
+ *
+ * The correction measures how much the subgroups actually disagree. Each
+ * baseline point is converted to a z-score against its own *unadjusted*
+ * sigma, and sigma-z is then taken from the mean moving range of those
+ * z-scores exactly as an XmR chart takes sigma from MR-bar. If the only
+ * variation were binomial the z-scores would behave like standard normal
+ * values and sigma-z would come out at 1; a sigma-z of 2.4 says the real
+ * spread is 2.4 times what the binomial model predicts.
+ *
+ * @param sigmaAt  the chart's own per-point sigma, before any correction
+ */
+export function dispersionFactor(baseline, centre, sigmaAt) {
+  const z = [];
+  for (const point of baseline) {
+    const sigma = sigmaAt(point);
+    if (sigma === null || !Number.isFinite(sigma) || sigma === 0) continue;
+    z.push((point.plotted - centre) / sigma);
+  }
+
+  const notEstimated = (mrBar) => ({
+    sigmaZ: 1,
+    applicable: false,
+    count: z.length,
+    mrBar,
+  });
+
+  if (z.length < 2) return notEstimated(null);
+
+  const movingRanges = z.slice(1).map((v, i) => Math.abs(v - z[i]));
+  const mrBar = mean(movingRanges);
+  const sigmaZ = mrBar / D2_N2;
+
+  /*
+   * A baseline that never moves gives MR-bar = 0 and so sigma-z = 0, which
+   * would collapse the limits onto the centre line and flag every point
+   * thereafter. There is no dispersion estimate to be had from flat data, so
+   * fall back to the uncorrected chart and say so.
+   */
+  if (!Number.isFinite(sigmaZ) || sigmaZ <= 0) return notEstimated(mrBar);
+
+  return { sigmaZ, applicable: true, count: z.length, mrBar };
+}
+
+/**
+ * Wrap a p- or u-chart's limits with the dispersion factor, giving P′ or U′.
+ *
+ * This follows Laney's published method, as Minitab implements it: sigma-z
+ * applies unconditionally, so the chart corrects *under*dispersion — limits
+ * too wide, hiding real signals — as well as over. P′ therefore differs from
+ * P even on well-behaved data, which is the intended behaviour and not a bug.
+ */
+function laney(base, baseline) {
+  const { sigmaZ, applicable, count, mrBar } = dispersionFactor(
+    baseline,
+    base.centre,
+    base.sigma,
+  );
+
+  return {
+    ...base,
+    sigma: (point) => {
+      const sigma = base.sigma(point);
+      return sigma === null ? null : sigma * sigmaZ;
+    },
+    sigmaZ,
+    dispersionApplicable: applicable,
+    zCount: count,
+    mrBarZ: mrBar,
+  };
+}
+
+/**
+ * Which builder computes limits for each control chart. A lookup rather than
+ * a conditional chain, so adding a chart type is one line and the Laney
+ * variants sit visibly next to the charts they correct.
+ */
+const LIMIT_BUILDERS = {
+  xmr: (baseline) => xmrLimits(baseline),
+  p: (baseline, measure) => pLimits(baseline, measure),
+  "p-prime": (baseline, measure) => laney(pLimits(baseline, measure), baseline),
+  np: (baseline) => npLimits(baseline),
+  c: (baseline) => cLimits(baseline),
+  u: (baseline, measure) => uLimits(baseline, measure),
+  "u-prime": (baseline, measure) => laney(uLimits(baseline, measure), baseline),
+};
 
 /* ------------------------------------------------------------------ *
  * Run-chart rules (median based, non-parametric)
@@ -364,13 +548,22 @@ export function mergeSpans(windows) {
 
 /**
  * Rule 4 — two out of three consecutive points beyond 2 sigma on the same
- * side of the centre line. Overlapping windows are merged into one span.
+ * side of the centre line. Overlapping windows are merged into one span,
+ * but only within a side: a stretch above the centre line and a stretch
+ * below it are two findings, even where their windows overlap. Merging
+ * across sides would report them as one long span and flag every point
+ * bridging them.
  */
 function detectTwoOfThree(points) {
-  const hits = [];
-  for (let i = 2; i < points.length; i += 1) {
-    const window = [points[i - 2], points[i - 1], points[i]];
-    for (const dir of [1, -1]) {
+  const spans = [];
+
+  for (const [dir, side] of [
+    [1, "above"],
+    [-1, "below"],
+  ]) {
+    const hits = [];
+    for (let i = 2; i < points.length; i += 1) {
+      const window = [points[i - 2], points[i - 1], points[i]];
       const beyond = window.filter((p) => {
         if (p.sigma === null || !Number.isFinite(p.sigma)) return false;
         const distance = (p.plotted - p.centre) * dir;
@@ -378,8 +571,27 @@ function detectTwoOfThree(points) {
       });
       if (beyond.length >= 2) hits.push(window.map((p) => p.index));
     }
+    for (const indices of mergeSpans(hits)) spans.push({ indices, side });
   }
-  return mergeSpans(hits);
+
+  return spans.sort((a, b) => a.indices[0] - b.indices[0]);
+}
+
+/**
+ * Mark each point with the rules it broke, so the renderer can flag a dot
+ * without re-deriving anything from the signal list.
+ */
+function flagViolations(points, signals) {
+  const byIndex = new Map(points.map((p) => [p.index, p]));
+
+  for (const signal of signals) {
+    for (const i of signal.indices) {
+      const point = byIndex.get(i);
+      if (point && !point.violations.includes(signal.rule)) {
+        point.violations.push(signal.rule);
+      }
+    }
+  }
 }
 
 /* ------------------------------------------------------------------ *
@@ -404,6 +616,7 @@ export function computeChart(measure, observations) {
     signals: [],
     warnings: [],
     incomplete: { count: 0, periods: [] },
+    phases: [],
     baseline: { frozen: false, count: 0, end: measure.baselineEnd ?? null },
     hasData: false,
   };
@@ -446,141 +659,227 @@ export function computeChart(measure, observations) {
       : { ...empty, incomplete };
   }
 
-  const { baseline, frozen } = splitBaseline(series, measure.baselineEnd);
+  /*
+   * Each phase is computed on its own and the results concatenated. Because
+   * every point keeps the global `index` it was given above, and every rule
+   * reports the indices of the points it covers, running the rules on one
+   * phase's slice yields correct global indices with no offset arithmetic —
+   * and, by construction, no rule can reach across a boundary.
+   */
+  const segments = segmentSeries(series, resolvePhases(measure)).filter(
+    (s) => s.points.length > 0,
+  );
+  const multiPhase = segments.length > 1;
+
   const warnings = [];
   if (incompletePeriods.length > 0) warnings.push("partial-rows");
+  // Limits computed from a handful of points are not worth the confidence
+  // their solid lines imply.
+  if (multiPhase && segments.some((s) => s.points.length < 8)) {
+    warnings.push("short-phase");
+  }
+
+  const points = [];
+  const signals = [];
+  const phases = [];
+
+  /** Name the phase in a signal's label, but only when there is a choice. */
+  const named = (phase, label) =>
+    multiPhase ? `${label} (${phase.label})` : label;
 
   /* --- run chart: median only, no limits ------------------------------ */
   if (type === "run") {
-    const centre = median(baseline.map((p) => p.plotted));
-    const points = series.map((p) => ({
-      ...p,
-      centre,
-      sigma: null,
-      ucl: null,
-      lcl: null,
-      violations: [],
-    }));
+    let runs = null;
 
-    const signals = [];
-    for (const run of detectShift(points, centre)) {
-      signals.push({ rule: "shift", indices: run, label: `Shift — ${run.length} points one side of the median` });
-    }
-    for (const run of detectTrend(points)) {
-      signals.push({ rule: "trend", indices: run, label: `Trend — ${run.length} points in one direction` });
-    }
-    const runs = runsTest(points, centre);
-    if (runs.signal) {
-      signals.push({
-        rule: runs.signal,
-        indices: [],
-        label:
-          runs.signal === "too-few-runs"
-            ? `Too few runs (${runs.runs}, expected about ${runs.expected.toFixed(1)})`
-            : `Too many runs (${runs.runs}, expected about ${runs.expected.toFixed(1)})`,
+    for (const segment of segments) {
+      const { phase } = segment;
+      const { baseline, frozen } = splitBaseline(segment.points, phase.baselineEnd);
+      const centre = median(baseline.map((p) => p.plotted));
+
+      const stamped = segment.points.map((p) => ({
+        ...p,
+        phaseId: phase.id,
+        centre,
+        sigma: null,
+        ucl: null,
+        lcl: null,
+        violations: [],
+      }));
+      points.push(...stamped);
+
+      for (const run of detectShift(stamped, centre)) {
+        signals.push({
+          rule: "shift",
+          indices: run,
+          phaseId: phase.id,
+          label: named(phase, `Shift — ${run.length} points one side of the median`),
+        });
+      }
+      for (const run of detectTrend(stamped)) {
+        signals.push({
+          rule: "trend",
+          indices: run,
+          phaseId: phase.id,
+          label: named(phase, `Trend — ${run.length} points in one direction`),
+        });
+      }
+
+      runs = runsTest(stamped, centre);
+      if (runs.signal) {
+        const expected = runs.expected.toFixed(1);
+        signals.push({
+          rule: runs.signal,
+          indices: [],
+          phaseId: phase.id,
+          label: named(
+            phase,
+            runs.signal === "too-few-runs"
+              ? `Too few runs (${runs.runs}, expected about ${expected})`
+              : `Too many runs (${runs.runs}, expected about ${expected})`,
+          ),
+        });
+      }
+
+      phases.push({
+        ...phase,
+        centre,
+        count: stamped.length,
+        baseline: { frozen, count: baseline.length, end: phase.baselineEnd ?? null },
       });
     }
-    if (series.length < 12) warnings.push("few-points");
 
-    for (const signal of signals) {
-      for (const i of signal.indices) {
-        const point = points.find((p) => p.index === i);
-        if (point && !point.violations.includes(signal.rule)) {
-          point.violations.push(signal.rule);
-        }
-      }
-    }
+    if (series.length < 12) warnings.push("few-points");
+    flagViolations(points, signals);
 
     return {
       chartType: type,
       points,
-      centre,
-      median: centre,
+      // The last phase is the one the process is in now, so it is what the
+      // latest point is judged against.
+      centre: phases.at(-1).centre,
+      median: phases.at(-1).centre,
       signals,
-      warnings,
+      warnings: [...new Set(warnings)],
       runsTest: runs,
       incomplete,
-      baseline: { frozen, count: baseline.length, end: measure.baselineEnd ?? null },
+      phases,
+      baseline: phases[0].baseline,
       hasData: true,
     };
   }
 
   /* --- control charts -------------------------------------------------- */
   if (type === "np") {
-    const denominators = new Set(series.map((p) => p.denominator));
-    if (denominators.size > 1) {
-      return { ...empty, warnings: ["np-needs-constant-denominator"], hasData: false };
-    }
-  }
-
-  const limits =
-    type === "xmr"
-      ? xmrLimits(baseline)
-      : type === "p"
-        ? pLimits(baseline, measure)
-        : type === "np"
-          ? npLimits(baseline)
-          : type === "c"
-            ? cLimits(baseline)
-            : uLimits(baseline, measure);
-
-  const points = series.map((p) => {
-    const sigma = limits.sigma(p);
-    const centre = limits.centre;
-    let ucl = sigma === null ? null : centre + 3 * sigma;
-    let lcl = sigma === null ? null : centre - 3 * sigma;
-
-    if (lcl !== null && limits.lclFloor !== null && limits.lclFloor !== undefined) {
-      lcl = Math.max(limits.lclFloor, lcl);
-    }
-    if (ucl !== null && limits.ceiling !== undefined) {
-      ucl = clamp(ucl, 0, limits.ceiling);
-    }
-
-    return { ...p, centre, sigma, ucl, lcl, violations: [] };
-  });
-
-  const signals = [];
-
-  const beyond = detectBeyondLimits(points);
-  if (beyond.length) {
-    signals.push({ rule: "beyond-limits", indices: beyond, label: `${beyond.length} point${beyond.length === 1 ? "" : "s"} outside the control limits` });
-  }
-  for (const run of detectShift(points, limits.centre, RULES.spcShift)) {
-    signals.push({ rule: "shift", indices: run, label: `Shift — ${run.length} points one side of the centre line` });
-  }
-  for (const run of detectTrend(points, RULES.spcTrend)) {
-    signals.push({ rule: "trend", indices: run, label: `Trend — ${run.length} points in one direction` });
-  }
-  for (const span of detectTwoOfThree(points)) {
-    signals.push({
-      rule: "two-of-three",
-      indices: span,
-      label: `2 of 3 points beyond 2 sigma, across ${span.length} points`,
-    });
-  }
-
-  for (const signal of signals) {
-    for (const i of signal.indices) {
-      const point = points.find((p) => p.index === i);
-      if (point && !point.violations.includes(signal.rule)) {
-        point.violations.push(signal.rule);
+    // Checked per phase, not across the whole series: only the points sharing
+    // a set of limits need to share a sample size, and a re-baseline often
+    // follows a change in how many cases are audited.
+    for (const segment of segments) {
+      if (new Set(segment.points.map((p) => p.denominator)).size > 1) {
+        return { ...empty, warnings: ["np-needs-constant-denominator"], hasData: false };
       }
     }
   }
 
-  if (baseline.length < 12) warnings.push("few-baseline-points");
-  if (limits.lclClamped) warnings.push("lcl-clamped-at-zero");
+  let detail = null;
+
+  for (const segment of segments) {
+    const { phase } = segment;
+    const { baseline, frozen } = splitBaseline(segment.points, phase.baselineEnd);
+    const limits = LIMIT_BUILDERS[type](baseline, measure);
+    detail = limits;
+
+    const stamped = segment.points.map((p) => {
+      const sigma = limits.sigma(p);
+      const centre = limits.centre;
+      let ucl = sigma === null ? null : centre + 3 * sigma;
+      let lcl = sigma === null ? null : centre - 3 * sigma;
+
+      if (lcl !== null && limits.lclFloor !== null && limits.lclFloor !== undefined) {
+        lcl = Math.max(limits.lclFloor, lcl);
+      }
+      if (ucl !== null && limits.ceiling !== undefined) {
+        ucl = clamp(ucl, 0, limits.ceiling);
+      }
+
+      return { ...p, phaseId: phase.id, centre, sigma, ucl, lcl, violations: [] };
+    });
+    points.push(...stamped);
+
+    const beyond = detectBeyondLimits(stamped);
+    if (beyond.length) {
+      signals.push({
+        rule: "beyond-limits",
+        indices: beyond,
+        phaseId: phase.id,
+        label: named(
+          phase,
+          `${beyond.length} point${beyond.length === 1 ? "" : "s"} outside the control limits`,
+        ),
+      });
+    }
+    for (const run of detectShift(stamped, limits.centre, RULES.spcShift)) {
+      signals.push({
+        rule: "shift",
+        indices: run,
+        phaseId: phase.id,
+        label: named(phase, `Shift — ${run.length} points one side of the centre line`),
+      });
+    }
+    for (const run of detectTrend(stamped, RULES.spcTrend)) {
+      signals.push({
+        rule: "trend",
+        indices: run,
+        phaseId: phase.id,
+        label: named(phase, `Trend — ${run.length} points in one direction`),
+      });
+    }
+    for (const { indices, side } of detectTwoOfThree(stamped)) {
+      signals.push({
+        rule: "two-of-three",
+        indices,
+        side,
+        phaseId: phase.id,
+        label: named(
+          phase,
+          `2 of 3 points beyond 2 sigma ${side} the centre line, across ${indices.length} points`,
+        ),
+      });
+    }
+
+    if (baseline.length < 12) warnings.push("few-baseline-points");
+    if (limits.lclClamped) warnings.push("lcl-clamped-at-zero");
+
+    // Laney charts only: sigma-z comes from moving ranges, so it is as shaky
+    // on a short baseline as any other moving-range estimate — and if it could
+    // not be estimated at all, the chart is quietly a plain p- or u-chart.
+    if ("sigmaZ" in limits) {
+      if (!limits.dispersionApplicable) warnings.push("dispersion-not-estimated");
+      else if (limits.zCount < 10) warnings.push("few-points-for-dispersion");
+    }
+
+    phases.push({
+      ...phase,
+      centre: limits.centre,
+      count: stamped.length,
+      detail: limits,
+      baseline: { frozen, count: baseline.length, end: phase.baselineEnd ?? null },
+    });
+  }
+
+  flagViolations(points, signals);
 
   return {
     chartType: type,
     points,
-    centre: limits.centre,
+    centre: phases.at(-1).centre,
     signals,
-    warnings,
-    detail: limits,
+    // Warnings name a condition, not an occurrence: repeating "few baseline
+    // points" once per phase would be noise.
+    warnings: [...new Set(warnings)],
+    detail,
     incomplete,
-    baseline: { frozen, count: baseline.length, end: measure.baselineEnd ?? null },
+    phases,
+    baseline: phases[0].baseline,
     hasData: true,
   };
 }
@@ -626,7 +925,10 @@ export function interpretChart(chart, measure) {
   }
 
   const point = chart.points.at(-1);
-  const above = point.plotted > chart.centre;
+  // The point's own centre line, not the chart's: with more than one phase
+  // they differ, and the latest point must be judged against the process it
+  // actually belongs to.
+  const above = point.plotted > point.centre;
   const better = measure.direction === "lower" ? !above : above;
 
   return better
