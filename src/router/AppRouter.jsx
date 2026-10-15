@@ -6,6 +6,7 @@ import ProjectDetailPage from "../features/projects/ProjectDetailPage.jsx";
 import DataEntryPage from "../features/data/DataEntryPage.jsx";
 import MeasureDetailPage from "../features/measures/MeasureDetailPage.jsx";
 import PeoplePage from "../features/people/PeoplePage.jsx";
+import BenchmarkPage from "../features/benchmark/BenchmarkPage.jsx";
 import NotFoundPage from "../features/NotFoundPage.jsx";
 
 /**
@@ -27,6 +28,7 @@ function AppRouter() {
             element={<MeasureDetailPage />}
           />
           <Route path="team" element={<PeoplePage />} />
+          <Route path="benchmark" element={<BenchmarkPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
