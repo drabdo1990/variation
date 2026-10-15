@@ -26,17 +26,17 @@ describe("benchmark fixtures", () => {
     }
   });
 
-  it("flags the post-change drop in the p and XmR fixtures", () => {
-    for (const key of ["p", "xmr"]) {
+  it("flags the post-change drop in the p, c and XmR fixtures", () => {
+    for (const key of ["p", "c", "xmr"]) {
       const chart = computeChart(BENCHMARK_MEASURES[key], BENCHMARK_OBSERVATIONS);
       expect(chart.signals.length, key).toBeGreaterThan(0);
     }
   });
 
-  it("c fixture raises no signal: 6 post-change points cannot form an 8-point shift and stay above the 0 lower limit", () => {
+  it("c fixture: 8 post-change points below the baseline centre of 7 form a shift", () => {
     const chart = computeChart(BENCHMARK_MEASURES.c, BENCHMARK_OBSERVATIONS);
     expect(chart.centre).toBe(7);
-    expect(chart.points[0].lcl).toBe(0);
-    expect(chart.signals).toEqual([]);
+    const shift = chart.signals.find((s) => s.rule === "shift");
+    expect(shift?.indices).toEqual([6, 7, 8, 9, 10, 11, 12, 13]);
   });
 });

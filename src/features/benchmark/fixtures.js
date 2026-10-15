@@ -15,7 +15,7 @@ const BASELINE_END = "2026-02-09";
 const PERIODS = [
   "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02",
   "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09",
-  "2026-03-16", "2026-03-23",
+  "2026-03-16", "2026-03-23", "2026-03-30", "2026-04-06",
 ];
 
 /** Build observations for one measure from [value, denominator?] rows. */
@@ -91,9 +91,11 @@ export const BENCHMARK_OBSERVATIONS = [
     [22, 52], [20, 49], [24, 55], [21, 50], [26, 58], [21, 51],
     [12, 47], [11, 53], [9, 50], [10, 54], [8, 49], [7, 52],
   ]),
-  // c-chart: counts per constant inspection unit
+  // c-chart: counts per constant inspection unit. Runs two weeks longer than
+  // the other fixtures: the Shewhart shift rule needs 8 consecutive points on
+  // one side of the centre line, and 6 post-change points cannot form one.
   ...rows("bm-c", [
-    [7], [6], [8], [5], [7], [9], [3], [2], [3], [1], [2], [2],
+    [7], [6], [8], [5], [7], [9], [3], [2], [3], [1], [2], [2], [2], [1],
   ]),
   // XmR: individual continuous values
   ...rows("bm-xmr", [
